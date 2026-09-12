@@ -1,6 +1,7 @@
 import { formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, samePlace, roundUpToMinute, buildJourneyGraph } from './utils.js';
 import {createStressUI, scenarioLabel} from './stress-ui.js';
 import {createJourneyTracker} from './journey-progress.js';
+import {createMobileSearch, MOBILE_QUERY} from './mobile-ui.js';
 
 const $ = id => document.getElementById(id);
 const fields = ['origin', 'destination'];
@@ -42,6 +43,7 @@ function busy(yes) {
   $('loading-state').hidden = !yes;
 }
 function invalidate() {
+  mobileSearch.reset();
   tracker.reset();
   stressUI.reset();
   state.revision++; state.selection++;
@@ -149,6 +151,8 @@ $('route-form').addEventListener('submit', async event => {
   let body;
   try { body = readRequest(); } catch (error) { return errorMessage(error.message); }
   invalidate(); fields.forEach(cancelSearch);
+  // Dismiss the phone keyboard once a valid search has been submitted.
+  if (matchMedia(MOBILE_QUERY).matches && document.activeElement instanceof HTMLElement) document.activeElement.blur();
   const revision = ++state.revision; state.request = new AbortController(); state.body = body;
   busy(true); $('empty-state').hidden = true; $('result-status').textContent = '모든 교통 경로 확인 중';
   try {
@@ -164,7 +168,8 @@ $('route-form').addEventListener('submit', async event => {
     const recommended = data.routes.findIndex(r => r.id === data.stress?.recommendedRouteId);
     const evaluated = data.routes.findIndex(r => data.stress?.routes.find(s => s.routeId === r.id)?.status === 'evaluated');
     chooseRoute(recommended >= 0 ? recommended : evaluated >= 0 ? evaluated : 0);
-    if (matchMedia('(max-width: 760px)').matches) $('results-region').scrollIntoView({block: 'start', behavior: 'auto'});
+    mobileSearch.setRoute(data, body);
+    if (matchMedia(MOBILE_QUERY).matches) $('results-region').scrollIntoView({block: 'start', behavior: 'auto'});
   } catch (error) {
     if (revision !== state.revision || error.name === 'AbortError') return;
     $('empty-state').hidden = false; $('result-status').textContent = '다시 검색해 주세요'; errorMessage(error.message);
@@ -227,6 +232,7 @@ function chooseRoute(index) {
   $('transfer-count').textContent = (item.transfers ?? '미확인') + '회';
   $('time-note').textContent = (item.warnings || []).join(' ') || state.response.notice;
   renderLine(); renderGuide(); renderDeadline(); loadDeadline();
+  $('route-scroll').scrollLeft = 0;
   tracker.setRoute(item);
   $('node-details').open = false;
   stressUI.setRoute({response: state.response, route: item, body: state.body, config: state.config});
@@ -401,6 +407,7 @@ async function initialize() {
     busy(false);
   } catch (error) { $('mode-badge').textContent = '연결 확인 필요'; errorMessage(error.message); }
 }
+const mobileSearch = createMobileSearch();
 const tracker = createJourneyTracker();
 const stressUI = createStressUI({
   post: (url, body, signal) => request(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal, timeout:45000}),

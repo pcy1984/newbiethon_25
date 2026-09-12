@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <meta name="theme-color" content="#202a38">
   <title>집엔 가야지 — 서울권 대학생을 위한 밤 귀가 가이드</title>
   <meta name="description" content="서울권 대학생을 위한 밤 귀가 가이드, 집엔 가야지. 출발 마감과 대중교통 경로, 지하철 환승 여유를 확인하세요. 일부 노선·막차 시각은 확인되지 않을 수 있습니다.">
@@ -18,8 +18,10 @@
 <main class="shell">
   <section class="hero"><div><p class="hero-kicker"><span aria-hidden="true">✦</span> 서울권 대학생을 위한 밤 귀가 가이드</p><h1>오늘의 끝은, <span>집에서.</span></h1><p class="hero-description">즐거운 시간은 조금 더. 집에 갈 타이밍은 놓치지 않게.</p></div><div class="hero-stamp" aria-hidden="true"><span>SEOUL</span><svg viewBox="0 0 32 32" fill="none"><path d="M23 23A12 12 0 0 1 9 5a12 12 0 1 0 18 16c-1 1-2 2-4 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M23 5v6m-3-3h6" stroke="currentColor" stroke-width="1.5"/></svg><span>NIGHT GUIDE</span></div></section>
   <div class="workspace">
-    <aside class="search-panel panel">
-      <div class="panel-heading"><span class="section-index">01</span><h2>어디에서 집에 가나요?</h2></div>
+    <aside id="search-panel" class="search-panel panel">
+      <div class="panel-heading"><span class="section-index">01</span><h2 id="search-heading">어디에서 집에 가나요?</h2><button id="search-toggle" class="search-toggle" type="button" aria-expanded="true" aria-controls="search-fields" hidden>검색 수정</button></div>
+      <div id="search-summary" class="search-summary" hidden><p><span id="search-origin"></span><span aria-hidden="true">→</span><span id="search-destination"></span></p><small id="search-time"></small></div>
+      <div id="search-fields">
       <form id="route-form" aria-describedby="coverage-note" novalidate>
         <div class="place-fields">
           <div class="location-field"><label for="origin-input">출발지</label><input id="origin-input" type="search" placeholder="학교 · 모임 장소 · 역" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="origin-results" aria-expanded="false"><div id="origin-results" class="suggestions" role="listbox" aria-label="출발지 검색 결과" hidden></div></div>
@@ -39,6 +41,7 @@
       <details class="examples" id="examples"><summary>예제 경로</summary><div id="example-buttons"></div></details>
       <p id="coverage-note" class="coverage-note"><strong>현재 서울권만 안내해요</strong>서울권 안에서도 일부 노선·막차 시각은 확인되지 않을 수 있어요.</p>
       <p id="config-notice" class="config-notice" hidden>가상 예제 모드입니다. 실제 운행·막차 정보가 아닙니다.</p>
+      </div>
     </aside>
     <section id="results-region" class="results" aria-labelledby="result-heading" aria-busy="false">
       <div class="result-topline"><div class="panel-heading"><span class="section-index">02</span><h2 id="result-heading">나의 귀가 플랜</h2></div><span id="result-status">출발지와 목적지를 선택하세요</span></div>
@@ -66,11 +69,11 @@
               <div class="trip-times"><span id="trip-elapsed">출발 전</span><span id="trip-eta"></span><span id="trip-remaining"></span></div>
               <progress id="trip-progress" max="100" value="0" aria-label="예상 이동 진행률"></progress>
             </section>
-            <div id="route-scroll" class="route-scroll"><div id="route-track" class="route-track">
+            <div id="route-scroll" class="route-scroll" tabindex="0" role="region" aria-label="이동 경로. 좌우로 스크롤하여 모든 지점 보기"><div id="route-track" class="route-track">
               <div id="traveler-marker" class="traveler-marker" hidden><span class="traveler-avatar" aria-hidden="true"><img src="/companion.svg" alt="" width="60" height="66"></span><span id="traveler-label">출발지</span></div>
               <div id="route-line" class="route-line" role="group" aria-label="직선 이동 경로"></div>
             </div></div>
-            <p class="route-caption">지점을 누르면 상세 정보를 볼 수 있어요. 캐릭터는 예상 위치입니다.</p>
+            <p class="route-caption"><span class="route-swipe-hint">↔ 경로를 좌우로 밀어보세요.</span>지점을 누르면 상세 정보를 볼 수 있어요. 캐릭터는 예상 위치입니다.</p>
             <details class="route-details"><summary>승차·하차 순서</summary><div id="route-guide" class="route-guide"></div></details>
             <details id="node-details" class="route-details"><summary>지점 상세 · 도보·택시</summary>
               <section id="node-info" class="node-info" aria-labelledby="node-heading" aria-live="polite"></section>
