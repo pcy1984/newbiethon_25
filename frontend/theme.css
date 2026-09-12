@@ -16,7 +16,7 @@
   --paper-line: #d5d9cf;
   --paper-muted: #657367;
   --radius: 20px;
-  font-family: "Pretendard", -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
+  font-family: "Pretendard", "Segoe UI", "Malgun Gothic", sans-serif;
   font-synthesis: none;
 }
 body { background: var(--bg); color: var(--ink); font-size: 15px; -webkit-font-smoothing: antialiased; }
@@ -163,80 +163,3 @@ footer { border-color: #cdd5c4; color: #70806a; margin-top: 36px; padding-top: 2
 }
 
 @media (max-width: 390px) { .scene-destination { bottom: 34px; right: 0; } }
-
-/* Phone interaction layer. Keep desktop density; give touch controls real space. */
-html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
-.search-toggle { margin-left: auto; flex-shrink: 0; border: 1px solid #c1ceb1; background: #e6edda; color: #49603e; border-radius: 8px; padding: 7px 10px; font-size: 12px; font-weight: 600; }
-.search-summary p { display: flex; flex-wrap: wrap; gap: 4px 8px; margin: 0; font-size: 15px; font-weight: 650; letter-spacing: -.4px; line-height: 1.7; overflow-wrap: anywhere; }
-.search-summary p>span { min-width: 0; }.search-summary p>span:nth-child(2) { color: #7b8a69; }
-.search-summary small { display: block; margin-top: 5px; font-size: 12px; color: #68775c; }
-.route-swipe-hint { display: none; }.route-scroll:focus-visible { outline: 2px solid #dcecaf; outline-offset: 2px; border-radius: 8px; }
-
-@media (max-width: 900px) {
-  .shell { padding-left: max(16px, env(safe-area-inset-left)); padding-right: max(16px, env(safe-area-inset-right)); }
-  .header { height: auto; min-height: 62px; padding-top: env(safe-area-inset-top); gap: 10px; }
-  .brand { font-size: 20px; min-height: 44px; }.brand-icon { width: 30px; height: 32px; }.header-label { display: none; }
-  .header-status { min-width: 0; font-size: 11px; }.header-status time { margin-left: 6px; font-size: 12px; }.hero-stamp { display: none; }
-  .hero { padding: 20px 0; }.hero h1 { font-size: clamp(26px, 6vw, 32px); letter-spacing: -1.3px; }.hero .hero-kicker { font-size: 11px; margin-bottom: 7px; }.hero .hero-description { margin-top: 6px; font-size: 12px; line-height: 1.7; }
-  .workspace { grid-template-columns: minmax(0, 1fr); gap: 22px; }
-  .search-panel { position: static; padding: 18px 17px 15px; border-radius: 16px; scroll-margin-top: 12px; }
-  .search-panel .panel-heading { gap: 8px; margin-bottom: 17px; }.search-panel h2 { font-size: 15px; letter-spacing: -.5px; min-width: 0; }
-  .search-panel.is-compact { padding: 12px 16px 15px; }.search-panel.is-compact .panel-heading { margin-bottom: 8px; }.search-panel.is-compact h2 { font-size: 13px; }
-  .search-panel.is-compact .section-index { width: 24px; height: 24px; font-size: 10px; }.search-toggle { min-height: 44px; min-width: 74px; }
-  .place-fields { padding-left: 19px; }.place-fields::before { left: 4px; top: 36px; bottom: 26px; }
-  .location-field { margin-bottom: 10px; }.location-field::before { left: -19px; top: 32px; }.location-field label { font-size: 12px; margin-bottom: 2px; }
-  .location-field input { height: 44px; padding-top: 6px; padding-bottom: 9px; padding-right: 44px; }
-  .search-panel input, .search-panel select, .results input, .results select,
-  .date-time input, #walk-departure, #taxi-departure, #stress-target { font-size: 16px; min-height: 44px; max-width: 100%; min-inline-size: 0; }
-  .search-panel input::placeholder { font-size: 14px; }.swap-button { top: 46px; right: -3px; width: 44px; height: 44px; border-radius: 50%; font-size: 21px; background: #f4f3ec; border-color: transparent; }
-  .swap-button::before { content: ""; position: absolute; inset: 7px; border: 1px solid #c2ccb5; border-radius: 50%; pointer-events: none; }
-  .search-panel .suggestions { left: -19px; right: 0; max-height: min(300px, 40dvh); overscroll-behavior-y: contain; }
-  .search-panel .suggestion { padding: 12px 10px; min-height: 52px; }.search-panel .suggestion strong { font-size: 15px; }.search-panel .suggestion small { font-size: 12px; }
-  .field-heading { margin: 9px 0 6px; font-size: 12px; }.field-heading>span { gap: 4px; }.field-heading button { min-height: 44px; min-width: 44px; padding: 6px 8px; background: transparent; font-size: 12px; }
-  .date-time { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 8px; }.date-time input { width: 100%; padding: 7px 5px; border-radius: 8px; }
-  input::-webkit-date-and-time-value { text-align: left; min-width: 0; }input::-webkit-datetime-edit { padding: 0; }
-  .search-panel summary, .results summary { min-height: 44px; padding: 9px 0; line-height: 1.8; font-size: 13px; }
-  .settings { margin-top: 12px; padding-top: 3px; }.settings p { font-size: 12px; }.setting-row { font-size: 13px; margin-top: 8px; }.setting-row input { width: 64px; }.setting-row select { min-width: 75px; }
-  .submit-button, .search-panel .submit-button { min-height: 48px; margin-top: 9px; font-size: 15px; }
-  .examples { margin-top: 5px; }.example-button { min-height: 44px; padding: 8px 10px; font-size: 12px; }
-  .coverage-note { margin-top: 9px; padding-top: 10px; font-size: 12px; line-height: 1.7; }.coverage-note strong { font-size: 12px; }
-  .form-error, .config-notice { font-size: 13px; }.config-notice { margin-top: 10px; }
-  .has-results .hero { padding: 16px 0; }.has-results .hero h1 { font-size: 25px; }.has-results .hero-description { display: none; }
-  .result-topline { flex-wrap: wrap; align-items: center; gap: 5px 10px; margin-bottom: 12px; }.result-topline h2 { font-size: 16px; }.result-topline>span { font-size: 12px; padding-left: 0; max-width: 100%; text-align: left; }
-  #results-region { scroll-margin-top: 12px; }.results, .journey-heading, .trip-heading>div { min-width: 0; }
-  .empty-main { grid-template-columns: minmax(0, 1fr) 105px; min-height: 268px; padding: 24px 19px; gap: 8px; align-items: center; }
-  .empty-copy { max-width: none; min-width: 0; }.empty-state h3 { font-size: clamp(22px, 5.4vw, 29px); line-height: 1.45; letter-spacing: -1px; margin-top: 12px; }.soft-pill { font-size: 10px; padding-inline: 8px; }
-  .empty-state h3 { word-break: keep-all; }.empty-state .empty-copy>p { margin-top: 11px; font-size: 12px; line-height: 1.8; word-break: keep-all; }.empty-prompt { margin-top: 15px; white-space: normal; font-size: 11px; line-height: 1.8; }
-  .night-scene { position: relative; width: 105px; height: 170px; top: auto; right: auto; bottom: auto; align-self: center; opacity: 1; }.scene-companion { width: 100px; top: 18px; }.companion-message { top: 96px; right: -1px; font-size: 10px; padding: 4px 7px; }
-  .scene-orbit { width: 160px; height: 160px; }.orbit-two { width: 125px; height: 125px; }.scene-moon { top: -5px; right: 3px; width: 22px; height: 22px; }.star-one { left: 0; }.star-two { top: 130px; }.star-three { display: none; }
-  .scene-path, .scene-origin, .scene-destination { display: none; }
-  .empty-state .plan-steps { grid-template-columns: 1fr; padding: 18px 19px; gap: 13px; }.plan-steps li { gap: 11px; }.plan-steps li>div { display: flex; flex-wrap: wrap; width: 100%; align-items: baseline; justify-content: space-between; gap: 2px 8px; }.plan-steps strong { font-size: 12px; }.empty-state .plan-steps p { font-size: 11px; margin: 0; }
-  .loading-state { min-height: 250px; padding: 22px; }
-  .deadline-hero { padding: 20px; }.deadline-hero h3 { font-size: 13px; margin-top: 12px; }.deadline-hero .eyebrow { font-size: 12px; }.tiny-pill { font-size: 11px; }
-  .deadline-value { gap: 6px 12px; }.deadline-value strong { font-size: clamp(38px, 11vw, 49px); overflow-wrap: anywhere; }.deadline-value>span { font-size: 14px; }.deadline-hero>p { font-size: 13px; max-width: 100%; }
-  .journey-body { padding: 18px 16px; }.journey-heading { flex-wrap: wrap; gap: 8px; }.journey-heading h3 { font-size: 17px; line-height: 1.7; }.route-tag { font-size: 11px; white-space: normal; }
-  .metrics { gap: 0; margin-top: 17px; }.metrics>div { min-width: 0; padding-left: 12px; }.metrics dd { font-size: clamp(20px, 5.5vw, 24px); letter-spacing: -.8px; overflow-wrap: anywhere; }.metrics dt { font-size: 11px; }.metrics dt span { font-size: 10px; }
-  .journey-tracker { padding: 13px; }.tracker-label { font-size: 11px; }.trip-heading { gap: 10px; }.trip-heading h4 { font-size: 14px; overflow-wrap: anywhere; }.trip-heading p { font-size: 12px; line-height: 1.7; }.trip-start { min-width: 64px; min-height: 44px; font-size: 13px; padding: 9px 10px; }
-  .trip-times { display: flex; justify-content: flex-start; gap: 5px 12px; font-size: 12px; }.trip-times>span { max-width: 100%; }.trip-times>span:empty { display: none; }#trip-progress { height: 5px; margin-top: 10px; }
-  .route-scroll { touch-action: pan-x pan-y; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch; padding-bottom: 5px; }.route-track { padding-top: 108px; }.route-line { padding-top: 12px; padding-bottom: 12px; }
-  .route-node { width: 96px; flex-basis: 96px; min-height: 72px; }.node-label { font-size: 13px; }.node-type { font-size: 11px; }.route-edge { width: 78px; flex-basis: 78px; }.route-edge>strong { max-width: 100%; }.route-edge>small { font-size: 11px; }
-  .route-caption { font-size: 12px; line-height: 1.8; }.route-swipe-hint { display: block; color: #d3e1c5; margin-bottom: 4px; }
-  .route-details, .data-notes { padding-top: 4px; margin-top: 5px; }.route-details>summary { font-size: 13px; }.data-notes summary { font-size: 12px; }
-  .secondary-button, .text-button, .scenario-card { min-height: 44px; }.secondary-button { font-size: 14px; padding: 10px 13px; }.text-button { padding: 8px 4px; font-size: 13px; }
-  .walking-panel, .taxi-panel { padding: 11px; }.walking-panel p, .taxi-panel p { font-size: 13px; }.disclosure-body>label { font-size: 13px; }
-  .node-info { padding: 12px; }.info-grid { grid-template-columns: minmax(0, 1fr); gap: 11px; }.info-grid dt { font-size: 12px; }.info-grid dd { font-size: 15px; }
-  .alternatives { margin-top: 23px; }.route-catalog-heading { flex-direction: column; align-items: start; gap: 4px; }.route-catalog-heading h2 { font-size: 17px; }.route-catalog-heading p { font-size: 12px; }
-  .route-group-list { grid-template-columns: minmax(0, 1fr); }.route-option { padding: 14px; }.route-group-heading h3 { font-size: 13px; }.option-label, .transport-badge { font-size: 12px; }.option-lines { font-size: 14px; }.route-option>strong { font-size: 19px; }.option-stats { font-size: 12px; }.option-deadline { font-size: 11px; }.route-stress-chips { font-size: 11px; gap: 5px 8px; }
-  .stress-lab { padding: 10px 15px; }.stress-lab>summary { font-size: 14px; }.stress-lab>summary>span { display: block; margin: 2px 0 0 13px; font-size: 12px; }.scenario-card { padding: 10px 8px; }.scenario-card strong { font-size: 14px; }.inline-warning { font-size: 13px; }
-  footer { margin-top: 24px; padding-bottom: max(24px, env(safe-area-inset-bottom)); font-size: 11px; gap: 10px; }footer>div { align-items: start; flex-direction: column; gap: 4px; }footer a { display: inline-block; padding-block: 8px; }
-}
-@media (max-width: 390px) {
-  .header-status time { display: none; }.search-panel h2 { font-size: 14px; }.search-panel .panel-heading { gap: 6px; }.search-toggle { min-width: 68px; padding-inline: 8px; }
-  .result-topline>span { width: 100%; padding-left: 35px; font-size: 11px; }.empty-main { grid-template-columns: minmax(0, 1fr) 90px; padding-inline: 16px; }
-  .night-scene { width: 90px; }.scene-companion { width: 90px; }.companion-message { top: 88px; right: -4px; }.soft-pill { font-size: 9px; }.empty-state h3 { font-size: 22px; }.empty-state .empty-copy>p { font-size: 11px; }
-  .metrics>div { padding-left: 8px; }.trip-heading { flex-wrap: wrap; }.trip-heading>div { flex: 1 1 155px; }.trip-start { margin-left: auto; }
-}
-@media (max-width: 359px) { .date-time { grid-template-columns: minmax(0, 1fr); }.date-time input { padding-inline: 11px; } }
-@media (max-width: 900px) and (max-height: 520px) {
-  .hero { padding-block: 14px; }.hero .hero-description { display: none; }.search-panel .suggestions { max-height: 55dvh; }
-}

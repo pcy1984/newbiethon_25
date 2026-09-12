@@ -502,7 +502,6 @@ class Handler(BaseHTTPRequestHandler):
                      "/styles.css": ("styles.css", "text/css"), "/theme.css": ("theme.css", "text/css"),
                      "/companion.svg": ("companion.svg", "image/svg+xml"), "/app.js": ("app.js", "text/javascript"),
                      "/utils.js": ("utils.js", "text/javascript"), "/stress-ui.js": ("stress-ui.js", "text/javascript"),
-                     "/mobile-ui.js": ("mobile-ui.js", "text/javascript"),
                      "/journey-progress.js": ("journey-progress.js", "text/javascript"), "/taxi-ui.js": ("taxi-ui.js", "text/javascript"),
                      "/favicon.svg": ("favicon.svg", "image/svg+xml")}
             if parsed.path not in files:

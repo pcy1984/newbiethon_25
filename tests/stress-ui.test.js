@@ -29,9 +29,8 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
   const elements=new Map([...html.matchAll(/id="([^"]+)"/g)].map(m=>[m[1],new Element()]));
   const get=id=>{assert.ok(elements.has(id),'HTML id exists: '+id);return elements.get(id);};
   const hero=new Element();
-  globalThis.document={body:new Element('body'),getElementById:get,createElement:tag=>new Element(tag),querySelector:s=>s==='.deadline-hero'?hero:null,addEventListener(){}};
-  globalThis.matchMedia=()=>({matches:false,addEventListener(){}});
-  globalThis.window={matchMedia:globalThis.matchMedia,addEventListener(){}};
+  globalThis.document={getElementById:get,createElement:tag=>new Element(tag),querySelector:s=>s==='.deadline-hero'?hero:null,addEventListener(){}};
+  globalThis.matchMedia=()=>({matches:false});
   const interval=globalThis.setInterval;globalThis.setInterval=()=>0;
   get('submit-button').append(new Element('span'),new Element('span'));
   get('access-minutes').value='10';get('buffer-minutes').value='5';
