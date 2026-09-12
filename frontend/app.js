@@ -1,5 +1,6 @@
 import { formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, samePlace, roundUpToMinute, buildJourneyGraph } from './utils.js';
 import {createStressUI, scenarioLabel} from './stress-ui.js';
+import {createJourneyTracker} from './journey-progress.js';
 
 const $ = id => document.getElementById(id);
 const fields = ['origin', 'destination'];
@@ -36,11 +37,12 @@ async function request(url, options = {}) {
 function errorMessage(text = '') { $('form-error').textContent = text; $('form-error').hidden = !text; }
 function busy(yes) {
   $('submit-button').disabled = yes || !state.config;
-  $('submit-button').firstElementChild.textContent = yes ? '경로를 모으고 있어요…' : '경로 & 지체 영향 비교';
+  $('submit-button').firstElementChild.textContent = yes ? '경로 검색 중…' : '경로 찾기';
   $('results-region').setAttribute('aria-busy', String(yes));
   $('loading-state').hidden = !yes;
 }
 function invalidate() {
+  tracker.reset();
   stressUI.reset();
   state.revision++; state.selection++;
   state.request?.abort(); state.deadlineRequest?.abort();
@@ -171,16 +173,16 @@ $('route-form').addEventListener('submit', async event => {
 function renderOptions() {
   const root = $('route-options'); root.replaceChildren();
   const definitions = [
-    ['SUBWAY', '지하철 경로', '열차 시간표가 확인되면 지연 시나리오를 제공합니다.'],
-    ['BUS', '버스 경로', '승차 노선과 정류장 순서, 막차 예정시간을 제공합니다.'],
-    ['TRANSIT', '버스 + 지하철', '수단이 섞인 환승 경로를 순서대로 안내합니다.'],
+    ['SUBWAY', '지하철', ''],
+    ['BUS', '버스', ''],
+    ['TRANSIT', '버스 + 지하철', ''],
   ];
   for (const [type, title, description] of definitions) {
     const entries = state.response.routes.map((item, index) => ({item, index})).filter(entry => entry.item.type === type);
     if (!entries.length) continue;
     const section = node('section', '', 'route-group ' + type.toLowerCase());
     const heading = node('div', '', 'route-group-heading');
-    const headingCopy = node('div'); headingCopy.append(node('h3', title), node('p', description));
+    const headingCopy = node('div'); headingCopy.append(node('h3', title));
     heading.append(headingCopy, node('span', entries.length + '개', 'route-count')); section.append(heading);
     const list = node('div', '', 'route-group-list');
     for (const {item, index} of entries) {
@@ -192,7 +194,7 @@ function renderOptions() {
       button.append(top, node('strong', formatDuration(item.durationSeconds)),
         node('div', item.label || rides.map(step => step.vehicles[0] || step.title).join(' → '), 'option-lines'),
         node('small', '환승 ' + (item.transfers ?? '미확인') + '회 · ' + rides.length + '개 승차 구간', 'option-stats'),
-        node('small', '선택하면 전체 이동 순서와 출발 마감 표시', 'option-deadline'));
+        node('small', '출발 마감은 선택 후 확인', 'option-deadline'));
       if (type === 'SUBWAY') {
         const stress = state.response.stress?.routes.find(report => report.routeId === item.id);
         const chips = node('div', '', 'route-stress-chips');
@@ -200,8 +202,6 @@ function renderOptions() {
           for (const scenario of stress.scenarios) chips.append(node('span', (scenario.delayMinutes ? '+' + scenario.delayMinutes + '분 ' : '정상 ') + scenarioLabel(scenario.status), scenario.status));
         } else chips.append(node('span', '지연 분석 · 시간표 부족', 'unknown'));
         button.append(chips);
-      } else {
-        button.append(node('span', type === 'BUS' ? '버스 이동 순서 제공' : '환승 이동 순서 제공', 'route-support'));
       }
       button.addEventListener('click', () => chooseRoute(index)); list.append(button);
     }
@@ -227,6 +227,8 @@ function chooseRoute(index) {
   $('transfer-count').textContent = (item.transfers ?? '미확인') + '회';
   $('time-note').textContent = (item.warnings || []).join(' ') || state.response.notice;
   renderLine(); renderGuide(); renderDeadline(); loadDeadline();
+  tracker.setRoute(item);
+  $('node-details').open = false;
   stressUI.setRoute({response: state.response, route: item, body: state.body, config: state.config});
 }
 function lineColor(step) {
@@ -292,6 +294,7 @@ function renderGuide() {
 }
 function selectNode(index) {
   state.nodeIndex = index;
+  $('node-details').open = true;
   for (const [i, button] of [...$('route-line').querySelectorAll('.route-node')].entries()) {
     button.setAttribute('aria-pressed', String(i === index)); button.firstElementChild.textContent = i === index ? '•' : '';
     if (i === index) button.scrollIntoView({block: 'nearest', inline: 'nearest', behavior: 'auto'});
@@ -327,7 +330,7 @@ function renderNode() {
     add('입력 시각 기준 하차', pointClock(part.step.arrival));
     add('구간 소요시간', formatDuration(part.step.durationSeconds));
     add('다음 단계', part.final ? '목적지까지 별도 이동 확인' : '다음 승차 지점으로 환승');
-    info.append(grid, node('p', part.final ? '최종 하차 지점입니다. 여기서 실제 목적지까지의 도보 경로는 조회하지 않습니다.' : '다음 지점까지 실제 이동시간은 현장에서 확인해 주세요. 여유시간 설정만으로 환승 성공을 보장하지는 않습니다.'));
+    info.append(grid, node('p', part.final ? '최종 하차 지점입니다. 아래 도보 조회를 펼치면 목적지까지 남은 이동을 확인할 수 있습니다.' : '다음 지점까지 실제 이동시간을 확인하세요. 설정한 여유만으로 환승 성공이 보장되지는 않습니다.'));
   }
 }
 async function loadDeadline(force = false) {
@@ -388,7 +391,7 @@ async function initialize() {
   setNow(); updateClock();
   try {
     state.config = await request('/api/config');
-    $('mode-badge').textContent = state.config.mode === 'demo' ? '가상 예제' : '서울 교통 연결';
+    $('mode-badge').textContent = state.config.mode === 'demo' ? '가상 예제' : '교통 정보 연결';
     $('config-notice').hidden = state.config.mode !== 'demo';
     for (const sample of state.config.examples || []) {
       const button = node('button', sample.origin.name + ' → ' + sample.destination.name, 'example-button'); button.type = 'button';
@@ -398,6 +401,7 @@ async function initialize() {
     busy(false);
   } catch (error) { $('mode-badge').textContent = '연결 확인 필요'; errorMessage(error.message); }
 }
+const tracker = createJourneyTracker();
 const stressUI = createStressUI({
   post: (url, body, signal) => request(url, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body), signal, timeout:45000}),
   chooseRoute,

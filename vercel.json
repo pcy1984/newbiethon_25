@@ -1,0 +1,23 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "echo No frontend dependencies",
+  "buildCommand": "node --check frontend/app.js",
+  "outputDirectory": "frontend",
+  "regions": ["icn1"],
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 120,
+      "excludeFiles": "{tests/**,scripts/**,docs/**,.env*,.git/**,.vercel/**,node_modules/**,**/__pycache__/**}"
+    }
+  },
+  "rewrites": [
+    {"source": "/api/:endpoint", "destination": "/api/index.py?endpoint=:endpoint"}
+  ],
+  "headers": [
+    {"source": "/(.*)", "headers": [
+      {"key": "X-Content-Type-Options", "value": "nosniff"},
+      {"key": "Referrer-Policy", "value": "strict-origin-when-cross-origin"}
+    ]}
+  ]
+}

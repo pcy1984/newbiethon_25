@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 .venv/
 node_modules/
+.vercel/
 *.log
 test-results/
 .DS_Store

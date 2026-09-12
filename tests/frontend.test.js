@@ -1,6 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import { formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, samePlace, distanceLabel, roundUpToMinute, buildJourneyGraph } from '../frontend/utils.js';
+
+test('사이트 이름·대상·서울권 안내와 정보 한계를 함께 표시한다', () => {
+  const html = readFileSync(new URL('../frontend/index.html', import.meta.url), 'utf8');
+  assert.match(html, /<title>집엔 가야지 — 서울권 대학생을 위한 밤 귀가 가이드<\/title>/);
+  assert.match(html, /aria-label="집엔 가야지 홈"/);
+  const notice = html.match(/<p id="coverage-note"[^>]*>([\s\S]*?)<\/p>/)?.[1];
+  assert.ok(notice);
+  assert.match(notice, /현재 서울권만 안내해요/);
+  assert.match(notice, /일부 노선·막차 시각은 확인되지 않을 수/);
+  assert.match(html, /<form[^>]*aria-describedby="coverage-note"/);
+  assert.doesNotMatch(html, /집갈시간/);
+});
 
 test('분 단위 올림과 시간 표시', () => {
   assert.equal(formatDuration(null), '확인 필요');
@@ -9,6 +22,20 @@ test('분 단위 올림과 시간 표시', () => {
   assert.equal(formatDuration(2940), '49분');
   assert.equal(formatDuration(3600), '1시간');
   assert.equal(formatDuration(3660), '1시간 1분');
+});
+
+test('새 테마에서도 출발 마감 우선·검색·진행 안내의 연결을 유지한다', () => {
+  const html = readFileSync(new URL('../frontend/index.html', import.meta.url), 'utf8');
+  const theme = readFileSync(new URL('../frontend/theme.css', import.meta.url), 'utf8');
+  assert.match(html, /href="\/theme\.css"/);
+  assert.match(html, /class="traveler-avatar"[^>]*>[\s\S]*?src="\/companion\.svg"/);
+  assert.ok(html.indexOf('id="deadline-time"') < html.indexOf('id="route-line"'));
+  assert.ok(html.indexOf('id="route-line"') < html.indexOf('id="route-options"'));
+  assert.match(html, /GPS가 아닌 시간 기반 예상 위치/);
+  assert.match(theme, /prefers-reduced-motion:\s*reduce/);
+  assert.match(theme, /max-width:\s*390px/);
+  const ids = [...html.matchAll(/\bid="([^"]+)"/g)].map(match => match[1]);
+  assert.equal(new Set(ids).size, ids.length);
 });
 
 test('직선 경로에서 출발·승차·하차·환승을 각각 클릭 가능하게 분리', () => {

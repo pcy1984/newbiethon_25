@@ -1,4 +1,5 @@
 import {formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, distanceLabel} from './utils.js';
+import {createTaxiUI} from './taxi-ui.js';
 
 const $ = id => document.getElementById(id);
 const element = (tag, text = '', cls = '') => { const e = document.createElement(tag); e.textContent = text; e.className = cls; return e; };
@@ -7,6 +8,7 @@ const time = value => value ? timeInKorea(value) : '미확인';
 const reserve = seconds => seconds == null ? '미확인' : seconds < 0 ? '기본 여유 부족' : Math.floor(seconds / 60) + '분 ' + seconds % 60 + '초';
 
 export function createStressUI({post, chooseRoute, highlight}) {
+  const taxiUI = createTaxiUI({post});
   let context = null, current = null, generation = 0, requestId = 0, target = 'weakest', delay = 5, point = null;
   let stressRequest, recoveryRequest, walkRequest, recoveryId = 0;
   const body = extra => ({...context.body, routeToken:context.response.routeToken, routeId:context.route.id, ...extra});
@@ -17,10 +19,12 @@ export function createStressUI({post, chooseRoute, highlight}) {
   };
   const abort = () => { stressRequest?.abort(); recoveryRequest?.abort(); walkRequest?.abort(); };
   function reset() {
+    taxiUI.reset();
     abort(); generation++; requestId++; context = current = point = null;
     $('stress-lab').hidden = true; $('walking-panel').hidden = true;
   }
   function setRoute(value) {
+    taxiUI.setRoute(value);
     abort(); generation++; requestId++; context = value; target = 'weakest'; delay = 5;
     current = value.response.stress?.routes.find(r => r.routeId === value.route.id) || null;
     $('stress-lab').hidden = value.route.type !== 'SUBWAY';
@@ -121,6 +125,7 @@ export function createStressUI({post, chooseRoute, highlight}) {
     const checkpoint=current?.checkpoints?.find(p=>p.rideIndex===value.rideIndex);
     const when=value.kind==='origin' ? context.body.departure : value.kind==='alighting' ? value.step?.arrival : checkpoint?.readyAt;
     $('walk-departure').value=when?.length===16 ? when : when ? localKoreaInput(new Date(when)) : context.body.departure;
+    taxiUI.selectPoint(value, when || context.body.departure);
     if(updateStress && current?.status==='evaluated') {
       if(value.kind==='boarding') setTarget(value.rideIndex);
       else if(value.kind==='origin') setTarget(0);

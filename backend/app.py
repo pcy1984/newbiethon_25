@@ -23,6 +23,7 @@ import bus_transit
 import journeys
 import stress
 import walking
+import taxi
 
 ROOT = Path(__file__).resolve().parents[1]
 KST = timezone(timedelta(hours=9))
@@ -219,31 +220,34 @@ def calculate_recovery(body, config):
         raise AppError(str(exc), exc.status) from None
 
 
+def selected_point(route, origin, body, config):
+    """Resolve a walking/taxi start only from the validated selected route."""
+    try:
+        return walking.point(route, origin, body.get('pointKind'), body.get('rideIndex'))
+    except seoul_transit.SeoulError as exc:
+        if exc.status != 422:
+            raise
+        rides = [s for s in route['steps'] if s['type'] in ('SUBWAY', 'BUS')]
+        step = rides[body['rideIndex']]
+        if step['type'] != 'SUBWAY':
+            raise
+        name = step['stops'][0 if body['pointKind'] == 'boarding' else -1]
+        station = seoul_transit.station_name(name)
+        query = station if station.endswith('역') else station + '역'
+        places = kakao_get('/v2/local/search/keyword.json', {'query':query, 'category_group_code':'SW8', 'size':15}, config, secure=True)
+        matches = [p for p in places.get('documents', []) if seoul_transit.station_name(str(p.get('place_name','')).split(' ')[0]) == station
+                   and any(line in p.get('place_name','') for line in step.get('vehicles', []))]
+        if len(matches) != 1:
+            raise seoul_transit.SeoulError('이 환승역의 노선별 위치를 하나로 확인하지 못했습니다. 출발 지점을 직접 확인해 주세요.', 422)
+        return validate_place({'name':name,'x':matches[0].get('x'),'y':matches[0].get('y')})
+
+
 def calculate_walk(body, config):
     if not config.rest_key:
         raise AppError('카카오 REST API 키를 .env에 넣고 서버를 다시 실행해 주세요.', 503)
     try:
         route, origin, destination, _ = selected_snapshot(body)
-        try:
-            start = walking.point(route, origin, body.get('pointKind'), body.get('rideIndex'))
-        except seoul_transit.SeoulError as exc:
-            if exc.status != 422:
-                raise
-            # Resolve missing interchange coordinates only from an exact subway
-            # station + line match; do not silently use a similarly named POI.
-            rides = [s for s in route['steps'] if s['type'] in ('SUBWAY', 'BUS')]
-            step = rides[body['rideIndex']]
-            if step['type'] != 'SUBWAY':
-                raise
-            name = step['stops'][0 if body['pointKind'] == 'boarding' else -1]
-            station = seoul_transit.station_name(name)
-            query = station if station.endswith('역') else station + '역'
-            places = kakao_get('/v2/local/search/keyword.json', {'query':query, 'category_group_code':'SW8', 'size':15}, config, secure=True)
-            matches = [p for p in places.get('documents', []) if seoul_transit.station_name(str(p.get('place_name','')).split(' ')[0]) == station
-                       and any(line in p.get('place_name','') for line in step.get('vehicles', []))]
-            if len(matches) != 1:
-                raise seoul_transit.SeoulError('이 환승역의 노선별 위치를 하나로 확인하지 못했습니다. 도보 출발 지점을 직접 확인해 주세요.', 422)
-            start = validate_place({'name':name,'x':matches[0].get('x'),'y':matches[0].get('y')})
+        start = selected_point(route, origin, body, config)
         departure = parse_departure(body.get('walkDeparture'))
         payload = kakao_get('/v2/routing/walk', {'start_x': start['x'], 'start_y': start['y'],
             'end_x': destination['x'], 'end_y': destination['y'], 's_name': start['name'], 'e_name': destination['name'],
@@ -251,6 +255,21 @@ def calculate_walk(body, config):
         return walking.normalize(payload, start, destination, departure)
     except seoul_transit.SeoulError as exc:
         raise AppError(str(exc), exc.status) from None
+
+
+def calculate_taxi(body, config):
+    if not config.rest_key:
+        raise AppError('카카오 REST API 키를 설정한 뒤 서버를 다시 실행해 주세요.', 503)
+    try:
+        route, origin, destination, _ = selected_snapshot(body)
+        departure, future = taxi.request_context(parse_departure(body.get('taxiDeparture')))
+        start = selected_point(route, origin, body, config)
+        if abs(start['x'] - destination['x']) < .000001 and abs(start['y'] - destination['y']) < .000001:
+            raise AppError('선택한 지점과 목적지가 같아요. 다른 지점을 선택해 주세요.', 422)
+        payload = taxi.fetch(start, destination, departure, config.rest_key, future)
+        return taxi.normalize(payload, start, destination, departure, future)
+    except seoul_transit.SeoulError as exc:
+        raise AppError(str(exc).replace('도보', '택시'), exc.status) from None
 
 
 def demo_routes(origin, destination):
@@ -471,7 +490,7 @@ class Handler(BaseHTTPRequestHandler):
             if parsed.path == "/api/config":
                 return self.json({"mode": config.mode, "javascriptKey": config.javascript_key if config.mode == "kakao" else "",
                                   "subwayConfigured": bool(config.seoul_key), "busConfigured": bool(config.bus_path_key and config.bus_station_key),
-                                  "walkingConfigured": bool(config.rest_key),
+                                  "walkingConfigured": bool(config.rest_key), "taxiConfigured": bool(config.rest_key),
                                   "notice": NOTICE, "demoNotice": DEMO_NOTICE,
                                   "examples": [{"origin": DEMO_PLACES[0], "destination": DEMO_PLACES[1]},
                                                {"origin": DEMO_PLACES[2], "destination": DEMO_PLACES[3]}] if config.mode in ("demo", "seoul") else []})
@@ -480,8 +499,11 @@ class Handler(BaseHTTPRequestHandler):
                 places = search_places(params.get("q", [""])[0], params.get("kind", ["keyword"])[0], config)
                 return self.json({"places": places, "source": config.mode})
             files = {"/": ("index.html", "text/html"), "/index.html": ("index.html", "text/html"),
-                     "/styles.css": ("styles.css", "text/css"), "/app.js": ("app.js", "text/javascript"),
-                     "/utils.js": ("utils.js", "text/javascript"), "/stress-ui.js": ("stress-ui.js", "text/javascript"), "/favicon.svg": ("favicon.svg", "image/svg+xml")}
+                     "/styles.css": ("styles.css", "text/css"), "/theme.css": ("theme.css", "text/css"),
+                     "/companion.svg": ("companion.svg", "image/svg+xml"), "/app.js": ("app.js", "text/javascript"),
+                     "/utils.js": ("utils.js", "text/javascript"), "/stress-ui.js": ("stress-ui.js", "text/javascript"),
+                     "/journey-progress.js": ("journey-progress.js", "text/javascript"), "/taxi-ui.js": ("taxi-ui.js", "text/javascript"),
+                     "/favicon.svg": ("favicon.svg", "image/svg+xml")}
             if parsed.path not in files:
                 raise AppError("페이지를 찾을 수 없습니다.", 404)
             filename, mime = files[parsed.path]
@@ -494,7 +516,7 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         try:
             self.check_local_request()
-            if self.path not in ("/api/routes", "/api/deadline", "/api/stress", "/api/recovery", "/api/walk"):
+            if self.path not in ("/api/routes", "/api/deadline", "/api/stress", "/api/recovery", "/api/walk", "/api/taxi"):
                 raise AppError("페이지를 찾을 수 없습니다.", 404)
             if self.headers.get_content_type() != "application/json":
                 raise AppError("JSON 형식으로 요청해 주세요.", 415)
@@ -502,14 +524,15 @@ class Handler(BaseHTTPRequestHandler):
                 size = int(self.headers.get("Content-Length", "0"))
             except ValueError:
                 raise AppError("요청 크기가 올바르지 않습니다.") from None
-            if not 0 < size <= 16384:
+            if not 0 < size <= 65536:
                 raise AppError("요청 크기가 올바르지 않습니다.", 413)
             try:
                 body = json.loads(self.rfile.read(size))
             except (ValueError, UnicodeError):
                 raise AppError("JSON 요청을 읽지 못했습니다.") from None
             function = {'/api/routes': calculate_routes, '/api/deadline': calculate_deadline,
-                        '/api/stress': calculate_stress, '/api/recovery': calculate_recovery, '/api/walk': calculate_walk}[self.path]
+                        '/api/stress': calculate_stress, '/api/recovery': calculate_recovery, '/api/walk': calculate_walk,
+                        '/api/taxi': calculate_taxi}[self.path]
             self.json(function(body, self.server.config))
         except AppError as exc:
             self.json({"error": str(exc)}, exc.status)

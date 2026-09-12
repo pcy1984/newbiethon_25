@@ -2,99 +2,114 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#090b0e">
-  <title>집갈시간 — 막차 경로 스트레스 테스트</title>
+  <meta name="theme-color" content="#202a38">
+  <title>집엔 가야지 — 서울권 대학생을 위한 밤 귀가 가이드</title>
+  <meta name="description" content="서울권 대학생을 위한 밤 귀가 가이드, 집엔 가야지. 출발 마감과 대중교통 경로, 지하철 환승 여유를 확인하세요. 일부 노선·막차 시각은 확인되지 않을 수 있습니다.">
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <link rel="stylesheet" href="/styles.css"><script type="module" src="/app.js"></script>
+  <link rel="stylesheet" href="/styles.css"><link rel="stylesheet" href="/theme.css"><script type="module" src="/app.js"></script>
 </head>
 <body>
 <a class="skip-link" href="#route-form">경로 검색으로 이동</a>
 <header class="shell header">
-  <a class="brand" href="/"><span class="brand-icon" aria-hidden="true">↗</span>집갈시간<span class="brand-dot">.</span></a>
-  <span class="header-label">THE NIGHT IS STILL YOURS</span>
+  <a class="brand" href="/" aria-label="집엔 가야지 홈"><span class="brand-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m6 15 10-9 10 9v11H6V15Z" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/><path d="M12 26v-9h8v9M16 4V1" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></span>집엔 가야지<span class="brand-dot">.</span></a>
+  <span class="header-label">서울의 밤, 나의 귀가 플랜</span>
   <div class="header-status"><span class="status-dot"></span><span id="mode-badge">연결 확인 중</span><time id="local-clock"></time></div>
 </header>
 <main class="shell">
-  <section class="hero">
-    <div><p class="eyebrow"><span></span> ROUTE STRESS TEST</p><h1>5분 늦어져도,<br><span>이 경로로 갈 수 있을까?</span></h1><p class="hero-copy">시간표 경로에 지체 상황을 적용하고, 취약한 환승을 확인해요.</p></div>
-    <div class="hero-note"><span class="orbit-icon" aria-hidden="true">↗</span><p>놓치고 싶지 않은 밤.<br><strong>놓치면 안 되는 막차.</strong></p><span class="note-coordinate">SEOUL · NIGHT ROUTE</span></div>
-  </section>
+  <section class="hero"><div><p class="hero-kicker"><span aria-hidden="true">✦</span> 서울권 대학생을 위한 밤 귀가 가이드</p><h1>오늘의 끝은, <span>집에서.</span></h1><p class="hero-description">즐거운 시간은 조금 더. 집에 갈 타이밍은 놓치지 않게.</p></div><div class="hero-stamp" aria-hidden="true"><span>SEOUL</span><svg viewBox="0 0 32 32" fill="none"><path d="M23 23A12 12 0 0 1 9 5a12 12 0 1 0 18 16c-1 1-2 2-4 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M23 5v6m-3-3h6" stroke="currentColor" stroke-width="1.5"/></svg><span>NIGHT GUIDE</span></div></section>
   <div class="workspace">
     <aside class="search-panel panel">
-      <div class="section-title"><span class="section-number">01</span><div><p class="eyebrow small">PLAN YOUR WAY HOME</p><h2>어디로 돌아가나요?</h2></div></div>
-      <form id="route-form" novalidate>
+      <div class="panel-heading"><span class="section-index">01</span><h2>어디에서 집에 가나요?</h2></div>
+      <form id="route-form" aria-describedby="coverage-note" novalidate>
         <div class="place-fields">
-          <div class="location-field"><label for="origin-input"><span class="origin-dot"></span>출발지</label><input id="origin-input" type="search" placeholder="역 · 정류장 이름 검색" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="origin-results" aria-expanded="false"><div id="origin-results" class="suggestions" role="listbox" aria-label="출발지 검색 결과" hidden></div></div>
+          <div class="location-field"><label for="origin-input">출발지</label><input id="origin-input" type="search" placeholder="학교 · 모임 장소 · 역" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="origin-results" aria-expanded="false"><div id="origin-results" class="suggestions" role="listbox" aria-label="출발지 검색 결과" hidden></div></div>
           <button id="swap" class="swap-button" type="button" aria-label="출발지와 목적지 바꾸기">⇅</button>
-          <div class="location-field"><label for="destination-input"><span class="destination-dot"></span>목적지</label><input id="destination-input" type="search" placeholder="어디로 돌아가나요?" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="destination-results" aria-expanded="false"><div id="destination-results" class="suggestions" role="listbox" aria-label="목적지 검색 결과" hidden></div></div>
+          <div class="location-field"><label for="destination-input">목적지</label><input id="destination-input" type="search" placeholder="집 · 자취방 · 기숙사" maxlength="80" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="destination-results" aria-expanded="false"><div id="destination-results" class="suggestions" role="listbox" aria-label="목적지 검색 결과" hidden></div></div>
         </div>
-        <div class="field-heading"><label for="departure-date">출발 예정 일시</label><span><button id="depart-night" type="button">오늘 23시</button> · <button id="depart-now" type="button">지금으로 ↗</button></span></div>
+        <div class="field-heading"><label for="departure-date">출발 예정</label><span><button id="depart-night" type="button">오늘 23시</button><button id="depart-now" type="button">지금</button></span></div>
         <div class="date-time"><input id="departure-date" type="date" min="2000-01-01" max="2100-12-31" required aria-label="출발 날짜"><input id="departure-time" type="time" required aria-label="출발 예정 시각"></div>
-        <div class="settings">
-          <div class="setting-row"><label for="access-minutes">첫 승차 지점까지</label><span><input id="access-minutes" type="number" min="0" max="120" step="1" value="10" required aria-describedby="access-hint"> 분</span></div>
-          <p id="access-hint">직접 설정한 이동시간이에요. 경로마다 첫 승차 지점이 다를 수 있어요. 이미 그곳이면 0분.</p>
+        <details class="settings"><summary>이동·환승 설정</summary>
+          <div class="setting-row"><label for="access-minutes">첫 승차 지점까지</label><span><input id="access-minutes" type="number" min="0" max="120" step="1" value="10" required aria-describedby="access-hint">분</span></div>
+          <p id="access-hint">기본 10분. 이미 승차 지점에 있다면 0분으로 설정하세요.</p>
           <div class="setting-row"><label for="buffer-minutes">승차·환승 여유</label><select id="buffer-minutes"><option value="5">5분</option><option value="10">10분</option></select></div>
-        </div>
+        </details>
         <p id="form-error" class="form-error" role="alert" hidden></p>
-        <button id="submit-button" class="submit-button" type="submit" disabled><span>경로 & 지체 영향 비교</span><span aria-hidden="true">↗</span></button>
-        <p class="form-caption">버스부터 지하철까지, 한 번에 비교해요.</p>
+        <button id="submit-button" class="submit-button" type="submit" disabled><span>경로 찾기</span><span aria-hidden="true">↗</span></button>
       </form>
-      <div class="examples" id="examples"><span>QUICK START</span><div id="example-buttons"></div></div>
+      <details class="examples" id="examples"><summary>예제 경로</summary><div id="example-buttons"></div></details>
+      <p id="coverage-note" class="coverage-note"><strong>현재 서울권만 안내해요</strong>서울권 안에서도 일부 노선·막차 시각은 확인되지 않을 수 있어요.</p>
       <p id="config-notice" class="config-notice" hidden>가상 예제 모드입니다. 실제 운행·막차 정보가 아닙니다.</p>
     </aside>
     <section id="results-region" class="results" aria-labelledby="result-heading" aria-busy="false">
-      <div class="result-topline"><h2 id="result-heading">오늘의 귀갓길</h2><span id="result-status">경로를 기다리는 중</span></div>
+      <div class="result-topline"><div class="panel-heading"><span class="section-index">02</span><h2 id="result-heading">나의 귀가 플랜</h2></div><span id="result-status">출발지와 목적지를 선택하세요</span></div>
       <div id="empty-state" class="empty-state panel">
-        <div class="empty-top"><span>YOUR NIGHT. YOUR TIMING.</span><span aria-hidden="true">↗</span></div>
-        <div class="empty-line" aria-hidden="true"><i></i><span></span><i></i><span></span><i class="last"></i></div>
-        <p class="eyebrow">TEST BEFORE YOU GO</p><h3>내 환승의 빈틈을,<br>출발 전에 확인하세요.</h3><p>정상 · 5분 지체 · 10분 지체를 비교해요.<br>막차를 놓치는 지점에서는 대안과 도보 귀가도 확인할 수 있어요.</p>
-        <div class="empty-footer"><span>01 출발지 선택</span><span>02 경로 비교</span><span>03 출발 마감 확인</span></div>
+        <div class="empty-main"><div class="empty-copy"><span class="soft-pill">마지막 일정은, 무사히 귀가</span><h3>몇 시까지<br>함께 있어도 될까<span>?</span></h3><p>막차에 쫓기지 않는 밤.<br>출발 마감부터 돌아갈 경로까지 확인해요.</p><span class="empty-prompt"><span aria-hidden="true">↖</span> 출발지와 목적지를 알려주세요</span></div>
+          <div class="night-scene" aria-hidden="true"><span class="scene-orbit orbit-one"></span><span class="scene-orbit orbit-two"></span><span class="scene-star star-one">✦</span><span class="scene-star star-two">+</span><span class="scene-star star-three">✧</span><span class="scene-moon"></span><div class="scene-companion"><img src="/companion.svg" alt="" width="170" height="190"><span class="companion-message">집엔 가야지!</span></div><svg class="scene-path" viewBox="0 0 320 130" fill="none"><path d="M15 100h68c40 0 28-67 73-67h146" stroke="#69827a" stroke-width="2" stroke-dasharray="5 6"/><circle cx="16" cy="100" r="5" fill="#dcecaf"/><circle cx="301" cy="33" r="7" fill="#dcecaf"/></svg><span class="scene-origin">즐거운 오늘</span><span class="scene-destination">편안한 집</span></div>
+        </div>
+        <ol class="plan-steps"><li><span>01</span><div><strong>귀가 경로 찾기</strong><p>버스·지하철을 한눈에</p></div></li><li><span>02</span><div><strong>출발 마감 확인</strong><p>언제 나가야 할지 먼저</p></div></li><li><span>03</span><div><strong>집으로 출발</strong><p>시간에 따라 이동 안내</p></div></li></ol>
       </div>
-      <div id="loading-state" class="loading-state panel" role="status" hidden><div class="spinner"></div><h3>돌아갈 길을 찾고 있어요</h3><p>버스·지하철 경로를 한 화면에 모으는 중이에요.</p></div>
+      <div id="loading-state" class="loading-state panel" role="status" hidden><div class="spinner"></div><h3>경로를 찾고 있어요</h3><p>버스·지하철 경로를 확인하고 있습니다.</p></div>
       <div id="result-content" hidden>
-        <p id="provider-warning" class="inline-warning" hidden></p>
-        <p id="demo-banner" class="inline-warning" hidden>가상 예제 결과입니다. 실제 운행 정보가 아닙니다.</p>
-        <div class="route-catalog-heading"><div><p class="eyebrow small">ROUTE OPTIONS</p><h2>갈 수 있는 경로</h2></div><p>교통수단별로 비교하고 하나를 선택하세요.</p></div>
-        <div id="route-options" class="route-options" aria-label="전체 경로 선택"></div>
-        <section id="stress-lab" class="stress-lab panel" aria-labelledby="stress-heading" hidden>
-          <div class="lab-heading"><div><p class="eyebrow">WHAT IF I AM LATE?</p><h2 id="stress-heading">경로 스트레스 테스트</h2></div><span class="tiny-pill">실시간 예측 아님</span></div>
-          <div id="stress-recommendation" class="stress-recommendation"></div>
-          <label for="stress-target">어디에서 지체되나요?</label><select id="stress-target"></select>
-          <div id="stress-scenarios" class="stress-scenarios" role="group" aria-label="지체 시나리오"></div>
-          <p id="stress-tolerance" class="stress-tolerance"></p>
-          <div id="stress-result" class="stress-result" aria-live="polite"></div>
-          <button id="recovery-button" class="secondary-button" type="button" hidden>이 지점에서 대중교통 대안 확인 ↗</button>
-          <div id="recovery-result" class="recovery-result" aria-live="polite"></div>
-          <details class="stress-notes"><summary>시뮬레이션 가정과 한계</summary><p id="stress-assumption"></p><p>초록: 설정 여유 유지 · 주황: 열차 전 도착하나 여유 부족 · 빨강: 예정 열차 놓침 · 회색: 시간표 미확인</p></details>
-        </section>
-        <article class="journey panel">
-          <div class="deadline-hero" aria-live="polite">
-            <div class="deadline-heading"><p class="eyebrow">TIME TO LEAVE</p><span id="deadline-badge" class="tiny-pill">확인 중</span></div>
-            <h3 id="deadline-label">출발 마감 확인 중</h3>
-            <div class="deadline-value"><strong id="deadline-time">—</strong><span id="deadline-suffix"></span></div>
+        <article class="journey panel" aria-label="선택한 경로와 출발 마감">
+          <div class="deadline-hero">
+            <div class="deadline-heading"><p class="eyebrow">출발 마감</p><span id="deadline-badge" class="tiny-pill">확인 중</span></div>
+            <h3 id="deadline-label">늦어도 출발해야 할 시각</h3>
+            <div class="deadline-value" aria-live="polite"><strong id="deadline-time">—</strong><span id="deadline-suffix"></span></div>
             <p id="deadline-summary">선택한 경로의 막차 정보를 확인하고 있어요.</p>
-            <div id="deadline-formula" class="deadline-formula"></div>
-            <button id="deadline-retry" class="text-button" type="button" hidden>막차 정보 다시 확인 ↗</button>
+            <button id="deadline-retry" class="text-button" type="button" hidden>다시 확인</button>
           </div>
           <div class="journey-body">
-            <div class="journey-heading"><div><p class="eyebrow small">YOUR ROUTE</p><h3 id="journey-title"></h3></div><span class="route-tag" id="route-tag"></span></div>
-            <dl class="metrics"><div><dt>예상 소요시간</dt><dd id="duration"></dd></div><div><dt>예상 도착 <span id="arrival-day"></span></dt><dd id="arrival-time"></dd></div><div><dt>환승</dt><dd id="transfer-count"></dd></div></dl>
-            <section class="route-guide-section" aria-labelledby="route-guide-heading"><div class="line-heading"><h4 id="route-guide-heading">이동 순서</h4><span>각 구간을 누르면 상세 정보로 이동해요</span></div><div id="route-guide" class="route-guide"></div></section>
-            <div class="line-heading"><h4>한눈에 보는 경로</h4><span>지점을 누르면 자세히 볼 수 있어요 ↗</span></div>
-            <div id="route-line" class="route-line" role="group" aria-label="직선 이동 경로"></div>
-            <section id="node-info" class="node-info" aria-labelledby="node-heading" aria-live="polite"></section>
-            <section id="walking-panel" class="walking-panel" aria-labelledby="walking-heading" hidden>
-              <h4 id="walking-heading">이 지점부터 걸어서 귀가하면?</h4><p id="walk-origin"></p><p id="walk-help"></p>
-              <label for="walk-departure">걷기 시작할 시각</label><input id="walk-departure" type="datetime-local" min="2000-01-01T00:00" max="2100-12-31T23:59" required>
-              <button id="walk-button" class="secondary-button" type="button">도보 거리·시간 조회 ↗</button><div id="walk-result" aria-live="polite"></div>
+            <div class="journey-heading"><h3 id="journey-title"></h3><span class="route-tag" id="route-tag"></span></div>
+            <dl class="metrics"><div><dt>소요시간</dt><dd id="duration"></dd></div><div><dt>예상 도착 <span id="arrival-day"></span></dt><dd id="arrival-time"></dd></div><div><dt>환승</dt><dd id="transfer-count"></dd></div></dl>
+            <section id="journey-tracker" class="journey-tracker" aria-labelledby="trip-status">
+              <div class="trip-heading"><div><span class="tracker-label">시간 기반 이동 안내</span><h4 id="trip-status" aria-live="polite">출발 전</h4><p id="trip-next">GPS가 아닌 시간 기반 예상 위치입니다.</p></div><button id="trip-start" class="trip-start" type="button">출발</button></div>
+              <div class="trip-times"><span id="trip-elapsed">출발 전</span><span id="trip-eta"></span><span id="trip-remaining"></span></div>
+              <progress id="trip-progress" max="100" value="0" aria-label="예상 이동 진행률"></progress>
             </section>
-            <details class="data-notes"><summary>계산 기준과 주의사항</summary><p id="time-note"></p><p id="deadline-note"></p><p>첫 승차 지점까지는 직접 입력한 이동시간을 적용합니다. 실제 도보 길찾기·택시비·지연·운휴는 반영하지 않습니다. 하차 후 최종 목적지까지 이동은 별도로 확인하세요.</p></details>
+            <div id="route-scroll" class="route-scroll"><div id="route-track" class="route-track">
+              <div id="traveler-marker" class="traveler-marker" hidden><span class="traveler-avatar" aria-hidden="true"><img src="/companion.svg" alt="" width="60" height="66"></span><span id="traveler-label">출발지</span></div>
+              <div id="route-line" class="route-line" role="group" aria-label="직선 이동 경로"></div>
+            </div></div>
+            <p class="route-caption">지점을 누르면 상세 정보를 볼 수 있어요. 캐릭터는 예상 위치입니다.</p>
+            <details class="route-details"><summary>승차·하차 순서</summary><div id="route-guide" class="route-guide"></div></details>
+            <details id="node-details" class="route-details"><summary>지점 상세 · 도보·택시</summary>
+              <section id="node-info" class="node-info" aria-labelledby="node-heading" aria-live="polite"></section>
+              <details id="walking-panel" class="walking-panel" aria-labelledby="walking-heading" hidden><summary id="walking-heading">이 지점에서 목적지까지 걷기</summary>
+                <div class="disclosure-body"><p id="walk-origin"></p><p id="walk-help"></p>
+                <label for="walk-departure">걷기 시작할 시각</label><input id="walk-departure" type="datetime-local" min="2000-01-01T00:00" max="2100-12-31T23:59" required>
+                <button id="walk-button" class="secondary-button" type="button">도보 시간 조회</button><div id="walk-result" aria-live="polite"></div></div>
+              </details>
+              <details id="taxi-panel" class="taxi-panel" hidden><summary>여기서 택시 타면?</summary>
+                <div class="disclosure-body"><p id="taxi-origin"></p><p id="taxi-help"></p>
+                  <label for="taxi-departure">예상 탑승 시각</label><input id="taxi-departure" type="datetime-local" min="2000-01-01T00:00" max="2100-12-31T23:59" required>
+                  <button id="taxi-button" class="secondary-button" type="button">택시비·시간 조회</button>
+                  <div id="taxi-result" aria-live="polite" aria-busy="false"></div>
+                </div>
+              </details>
+            </details>
+            <details class="data-notes"><summary>계산 기준</summary><div id="deadline-formula" class="deadline-formula"></div><p id="time-note"></p><p id="deadline-note"></p><p id="trip-method"></p><p>이동 안내는 GPS를 사용하지 않습니다. 출발 버튼을 누른 시각부터 경과시간으로 계산하며, 화면을 새로고침하거나 경로를 바꾸면 종료됩니다. 하차 후 목적지까지 도보는 별도로 조회하세요.</p></details>
           </div>
         </article>
+        <section class="alternatives" aria-labelledby="alternative-heading"><div class="route-catalog-heading"><h2 id="alternative-heading">다른 경로 비교</h2><p>경로를 선택하면 위의 안내가 바뀝니다.</p></div><div id="route-options" class="route-options" aria-label="전체 경로 선택"></div></section>
+        <details id="stress-lab" class="stress-lab panel" aria-labelledby="stress-heading" hidden>
+          <summary id="stress-heading">지하철 지연 분석 <span>5분·10분 늦어진다면?</span></summary>
+          <div class="disclosure-body">
+            <div id="stress-recommendation" class="stress-recommendation"></div>
+            <label for="stress-target">지체되는 지점</label><select id="stress-target"></select>
+            <div id="stress-scenarios" class="stress-scenarios" role="group" aria-label="지체 시나리오"></div>
+            <p id="stress-tolerance" class="stress-tolerance"></p>
+            <div id="stress-result" class="stress-result" aria-live="polite"></div>
+            <button id="recovery-button" class="secondary-button" type="button" hidden>이 지점에서 대안 확인</button>
+            <div id="recovery-result" class="recovery-result" aria-live="polite"></div>
+            <details class="stress-notes"><summary>분석 기준</summary><p id="stress-assumption"></p><p>초록: 설정 여유 유지 · 주황: 여유 부족 · 빨강: 예정 열차 놓침 · 회색: 시간표 미확인</p></details>
+          </div>
+        </details>
+        <p id="provider-warning" class="inline-warning" hidden></p>
+        <p id="demo-banner" class="inline-warning" hidden>가상 예제 결과입니다. 실제 운행 정보가 아닙니다.</p>
       </div>
     </section>
   </div>
-  <footer><div><a class="brand small-brand" href="/">집갈시간<span class="brand-dot">.</span></a><span>즐거운 밤의 마지막까지.</span></div><p>출처 <a href="https://www.data.go.kr/data/15143842/openapi.do" target="_blank" rel="noreferrer">서울교통공사</a> · <a href="https://www.data.go.kr/data/15000414/openapi.do" target="_blank" rel="noreferrer">서울시 환승경로</a> · <a href="https://www.data.go.kr/data/15000303/openapi.do" target="_blank" rel="noreferrer">정류소 정보</a></p></footer>
+  <footer><div><span class="footer-brand">집엔 가야지.</span><span>서울권 귀가 안내 · 시간표·예정정보 기반</span></div><p>출처 <a href="https://www.data.go.kr/data/15143842/openapi.do" target="_blank" rel="noreferrer">서울교통공사</a> · <a href="https://www.data.go.kr/data/15000414/openapi.do" target="_blank" rel="noreferrer">서울시 환승경로</a> · <a href="https://developers.kakao.com/docs/ko/kakaomap/rest-api" target="_blank" rel="noreferrer">카카오맵</a></p></footer>
 </main>
 </body>
 </html>

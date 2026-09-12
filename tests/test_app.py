@@ -177,7 +177,10 @@ class HTTPTests(unittest.TestCase):
         cls.thread.join()
 
     def test_static_files(self):
-        for path, mime in (("/", "text/html"), ("/app.js", "text/javascript"), ("/styles.css", "text/css")):
+        for path, mime in (("/", "text/html"), ("/app.js", "text/javascript"),
+                           ("/utils.js", "text/javascript"), ("/stress-ui.js", "text/javascript"),
+                           ("/journey-progress.js", "text/javascript"), ("/taxi-ui.js", "text/javascript"), ("/styles.css", "text/css"),
+                           ("/theme.css", "text/css"), ("/companion.svg", "image/svg+xml"), ("/favicon.svg", "image/svg+xml")):
             with urllib.request.urlopen(self.url + path) as response:
                 self.assertEqual(response.status, 200)
                 self.assertIn(mime, response.headers["Content-Type"])

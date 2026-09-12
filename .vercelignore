@@ -1,0 +1,15 @@
+.env
+.env.*
+.git
+.vercel
+.venv
+node_modules
+__pycache__
+**/__pycache__
+*.pyc
+**/*.pyc
+scripts
+tests
+docs
+*.log
+test-results

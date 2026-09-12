@@ -72,6 +72,10 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
     assert.equal(get('stress-lab').hidden,false);
     assert.match(get('stress-result').textContent,/여유 부족/);
     assert.equal(get('route-line').querySelectorAll('.route-node').length,5);
+    assert.equal(get('trip-start').disabled,false);
+    await get('trip-start').emit('click');
+    assert.equal(get('trip-start').textContent,'안내 종료');
+    assert.equal(get('traveler-label').textContent,'내 예상 위치');
     await get('stress-scenarios').children[2].emit('click');
     assert.match(get('stress-result').textContent,/열차 놓침/);
     assert.equal(get('route-line').querySelectorAll('.is-broken').length,1);
@@ -89,11 +93,15 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
     const options=get('route-options').querySelectorAll('.route-option');
     assert.equal(options.length,2);
     await options[1].emit('click');await flush();
+    assert.equal(get('trip-start').textContent,'출발');
+    assert.equal(get('trip-elapsed').textContent,'출발 전');
     assert.equal(get('stress-lab').hidden,true);
+    assert.equal(get('trip-start').disabled,false);
     assert.match(get('route-guide').textContent,/201/);
     assert.match(get('route-guide').textContent,/버스 승차·하차 정류장/);
     await get('access-minutes').emit('input');
     assert.equal(get('result-content').hidden,true);
     assert.equal(get('stress-lab').hidden,true);
+    assert.equal(get('trip-start').disabled,true);
   } finally {globalThis.setInterval=interval;}
 });

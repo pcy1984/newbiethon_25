@@ -10,6 +10,7 @@ from datetime import datetime, timedelta
 import bus_transit as bus
 import seoul_transit as rail
 import stress
+import route_tokens
 
 _snapshots = OrderedDict()
 _lock = threading.Lock()
@@ -28,6 +29,7 @@ def access_minutes(value):
 
 
 def find(origin, destination, departure, margin, access, config):
+    signing_key = route_tokens.secret()
     station_departure = departure + timedelta(minutes=access)
     try:
         routes, failures = bus.all_routes(origin, destination, station_departure, config.bus_path_key, margin)
@@ -95,6 +97,8 @@ def find(origin, destination, departure, margin, access, config):
     stamp = time.monotonic()
     entry = {'created': stamp, 'context': context(origin, destination, departure, margin, access),
              'routes': copy.deepcopy(routes), 'reports': {}, 'mutex': threading.Lock()}
+    if signing_key:
+        token = route_tokens.encode(entry['context'], entry['routes'], signing_key)
     with _lock:
         for old in [k for k, v in _snapshots.items() if stamp - v['created'] > TTL]:
             del _snapshots[old]
@@ -126,6 +130,10 @@ def origin_deadline(report, departure, access):
 def resolve(token, route_id, origin, destination, departure, margin, access):
     with _lock:
         entry = _snapshots.get(token) if isinstance(token, str) else None
+    if not entry and isinstance(token, str) and token.startswith('v1.'):
+        restored = route_tokens.decode(token, route_tokens.secret())
+        entry = {'created': time.monotonic(), 'context': tuple(restored['context']), 'routes': restored['routes'],
+                 'reports': {}, 'mutex': threading.Lock()}
     if not entry or time.monotonic() - entry['created'] > TTL:
         raise rail.SeoulError('조회 결과가 만료됐어요. 경로를 다시 검색해 주세요.', 409)
     if entry['context'] != context(origin, destination, departure, margin, access):
