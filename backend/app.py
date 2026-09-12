@@ -144,7 +144,7 @@ def search_places(query, kind, config):
     if not 1 <= len(query) <= 80 or kind not in ("keyword", "address"):
         raise AppError("검색어는 1~80자로 입력해 주세요.")
     if config.mode == "demo":
-        return [p for p in DEMO_PLACES if query.replace(" ", "") in p["name"]]
+        raise AppError('API가 설정되지 않았습니다. 키를 설정한 뒤 장소를 검색해 주세요.', 503)
     if config.mode == "seoul" and not config.rest_key:
         try:
             return bus_transit.search(query, config.bus_path_key)
@@ -249,10 +249,13 @@ def calculate_walk(body, config):
         route, origin, destination, _ = selected_snapshot(body)
         start = selected_point(route, origin, body, config)
         departure = parse_departure(body.get('walkDeparture'))
-        payload = kakao_get('/v2/routing/walk', {'start_x': start['x'], 'start_y': start['y'],
-            'end_x': destination['x'], 'end_y': destination['y'], 's_name': start['name'], 'e_name': destination['name'],
-            'input_coord': 'WGS84', 'output_coord': 'WGS84'}, config, secure=True)
-        return walking.normalize(payload, start, destination, departure)
+        try:
+            payload = kakao_get('/v2/routing/walk', {'start_x': start['x'], 'start_y': start['y'],
+                'end_x': destination['x'], 'end_y': destination['y'], 's_name': start['name'], 'e_name': destination['name'],
+                'input_coord': 'WGS84', 'output_coord': 'WGS84'}, config, secure=True)
+            return walking.normalize(payload, start, destination, departure)
+        except (AppError, seoul_transit.SeoulError):
+            return walking.estimate(start, destination, departure)
     except seoul_transit.SeoulError as exc:
         raise AppError(str(exc), exc.status) from None
 
@@ -272,32 +275,6 @@ def calculate_taxi(body, config):
         raise AppError(str(exc).replace('도보', '택시'), exc.status) from None
 
 
-def demo_routes(origin, destination):
-    known = {p["id"]: p for p in DEMO_PLACES}
-    for place in (origin, destination):
-        expected = known.get(place["id"])
-        if not expected or any(abs(place[key] - expected[key]) > 0.00001 for key in ("x", "y")):
-            raise AppError("예제 모드에서는 아래 예제 경로를 선택해 주세요. 실제 장소 검색은 REST API 키 설정 후 가능합니다.", 422)
-    pair = frozenset((origin["id"], destination["id"]))
-    if pair == frozenset(("demo-hongdae", "demo-gangnam")):
-        durations = [(4, 38, 7), (2, 49, 3)]
-    elif pair == frozenset(("demo-konkuk", "demo-seoul")):
-        durations = [(5, 30, 6), (2, 43, 3)]
-    else:
-        raise AppError("이 조합의 예제는 준비되지 않았어요. ‘홍대입구 → 강남’ 또는 ‘건대입구 → 서울역’을 선택해 주세요.", 422)
-    routes = []
-    for walk_start, transit, walk_end in durations:
-        legs = [("WALKING", walk_start, "승차 지점까지 걷기"),
-                ("SUBWAY", transit, "예제 지하철 이동"),
-                ("WALKING", walk_end, "목적지까지 걷기")]
-        steps = [{"properties": {"type": kind, "time": minutes * 60,
-                   "distance": minutes * (65 if kind == "WALKING" else 450),
-                   "guidance": title, "vehicles": [{"name": "예제 노선"}] if kind == "SUBWAY" else [],
-                   "stops": [{"name": origin["name"]}, {"name": destination["name"]}] if kind == "SUBWAY" else []}}
-                 for kind, minutes, title in legs]
-        routes.append({"properties": {"type": "SUBWAY", "totalTime": sum((walk_start, transit, walk_end)) * 60,
-                       "totalDistance": sum(s["properties"]["distance"] for s in steps), "transfers": 0}, "steps": steps})
-    return {"status": "OK", "routes": routes}
 
 
 def normalize_routes(payload, departure):
@@ -353,7 +330,7 @@ def calculate_routes(body, config):
         raise AppError("출발지와 목적지가 같아요. 다른 장소를 선택해 주세요.")
     departure = parse_departure(body.get("departure"))
     if config.mode == "demo":
-        payload = demo_routes(origin, destination)
+        raise AppError('교통 API가 설정되지 않았습니다. 가상 경로는 생성하지 않습니다.', 422)
     else:
         # No time parameter exists: do not imply that departure changes this route.
         payload = kakao_get("/v2/routing/publictraffic", {
@@ -491,9 +468,7 @@ class Handler(BaseHTTPRequestHandler):
                 return self.json({"mode": config.mode, "javascriptKey": config.javascript_key if config.mode == "kakao" else "",
                                   "subwayConfigured": bool(config.seoul_key), "busConfigured": bool(config.bus_path_key and config.bus_station_key),
                                   "walkingConfigured": bool(config.rest_key), "taxiConfigured": bool(config.rest_key),
-                                  "notice": NOTICE, "demoNotice": DEMO_NOTICE,
-                                  "examples": [{"origin": DEMO_PLACES[0], "destination": DEMO_PLACES[1]},
-                                               {"origin": DEMO_PLACES[2], "destination": DEMO_PLACES[3]}] if config.mode in ("demo", "seoul") else []})
+                                  "notice": NOTICE, "demoNotice": None, "examples": []})
             if parsed.path == "/api/places":
                 params = urllib.parse.parse_qs(parsed.query)
                 places = search_places(params.get("q", [""])[0], params.get("kind", ["keyword"])[0], config)

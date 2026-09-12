@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "backend"))
 import app
+from route_fixtures import fixture_routes
 
 
 def request_body(departure="2026-09-12T23:40"):
@@ -18,44 +19,45 @@ def request_body(departure="2026-09-12T23:40"):
 
 
 class CalculationTests(unittest.TestCase):
-    def test_demo_is_explicit_not_time_aware(self):
-        result = app.calculate_routes(request_body(), app.Config())
-        self.assertEqual(result["source"], "demo")
-        self.assertFalse(result["timeAware"])
-        self.assertIn("가상", result["demoNotice"])
-        self.assertIn("막차", result["notice"])
+    def provider_result(self, body):
+        with patch.object(app, 'kakao_get', return_value=fixture_routes(body['origin'], body['destination'])):
+            return app.calculate_routes(body, app.Config(rest_key='unit-test-key'))
+
+    def test_demo_removed_when_api_unconfigured(self):
+        with self.assertRaisesRegex(app.AppError, '가상 경로는 생성하지'):
+            app.calculate_routes(request_body(), app.Config())
 
     def test_midnight_rollover_and_seconds(self):
-        route = app.calculate_routes(request_body(), app.Config())["routes"][0]
+        route = self.provider_result(request_body())["routes"][0]
         self.assertEqual(route["durationSeconds"], 2940)
         self.assertEqual(route["arrival"], "2026-09-13T00:29:00+09:00")
 
     def test_year_rollover(self):
-        route = app.calculate_routes(request_body("2026-12-31T23:40"), app.Config())["routes"][0]
+        route = self.provider_result(request_body("2026-12-31T23:40"))["routes"][0]
         self.assertEqual(route["arrival"], "2027-01-01T00:29:00+09:00")
 
     def test_departure_does_not_fake_time_dependent_duration(self):
-        a = app.calculate_routes(request_body("2026-09-12T09:00"), app.Config())["routes"][0]
-        b = app.calculate_routes(request_body("2026-09-12T23:00"), app.Config())["routes"][0]
+        a = self.provider_result(request_body("2026-09-12T09:00"))["routes"][0]
+        b = self.provider_result(request_body("2026-09-12T23:00"))["routes"][0]
         self.assertEqual(a["durationSeconds"], b["durationSeconds"])
         self.assertNotEqual(a["arrival"], b["arrival"])
 
     def test_sorted_alternatives_and_walk(self):
-        routes = app.calculate_routes(request_body(), app.Config())["routes"]
+        routes = self.provider_result(request_body())["routes"]
         self.assertEqual([r["durationMinutes"] for r in routes], [49, 54])
         self.assertEqual([r["walkSeconds"] for r in routes], [660, 300])
 
     def test_reverse_demo_supported(self):
         body = request_body()
         body["origin"], body["destination"] = body["destination"], body["origin"]
-        result = app.calculate_routes(body, app.Config())
+        result = self.provider_result(body)
         self.assertEqual(result["origin"]["name"], "강남역")
         self.assertEqual(result["routes"][0]["steps"][1]["stops"][0], "강남역")
 
     def test_other_example(self):
         body = request_body()
         body.update(origin=app.DEMO_PLACES[2], destination=app.DEMO_PLACES[3])
-        self.assertEqual(app.calculate_routes(body, app.Config())["routes"][0]["durationMinutes"], 41)
+        self.assertEqual(self.provider_result(body)["routes"][0]["durationMinutes"], 41)
 
     def test_unsupported_demo_not_invented(self):
         body = request_body()
@@ -92,8 +94,8 @@ class CalculationTests(unittest.TestCase):
                 app.calculate_routes(body, app.Config())
 
     def test_places_search(self):
-        self.assertEqual(app.search_places("홍대", "keyword", app.Config())[0]["name"], "홍대입구역")
-        self.assertEqual(app.search_places("없는장소", "keyword", app.Config()), [])
+        with self.assertRaisesRegex(app.AppError, 'API가 설정되지 않았습니다'):
+            app.search_places("홍대", "keyword", app.Config())
 
     def test_seoul_keyword_search_prioritizes_transit_points(self):
         kakao = {"documents": [{"id": "shop", "place_name": "고뮤즈", "address_name": "경기 구리시",
@@ -111,7 +113,7 @@ class CalculationTests(unittest.TestCase):
             app.search_places("  ", "keyword", app.Config())
 
     def test_provider_contract_no_departure_parameter(self):
-        fixture = app.demo_routes(request_body()["origin"], request_body()["destination"])
+        fixture = fixture_routes(request_body()["origin"], request_body()["destination"])
         with patch.object(app, "kakao_get", return_value=fixture) as get:
             result = app.calculate_routes(request_body(), app.Config(rest_key="server-secret"))
         self.assertEqual(result["source"], "kakao")
@@ -126,12 +128,12 @@ class CalculationTests(unittest.TestCase):
             app.normalize_routes({"status": "NO_RESULTS"}, app.parse_departure("2026-09-12T22:00"))
 
     def test_bad_routes_skipped(self):
-        fixture = app.demo_routes(request_body()["origin"], request_body()["destination"])
+        fixture = fixture_routes(request_body()["origin"], request_body()["destination"])
         fixture["routes"].insert(0, {"properties": {"totalTime": "NaN"}})
         self.assertEqual(len(app.normalize_routes(fixture, app.parse_departure("2026-09-12T22:00"))), 2)
 
     def test_duration_rounding_and_coordinates(self):
-        fixture = app.demo_routes(request_body()["origin"], request_body()["destination"])
+        fixture = fixture_routes(request_body()["origin"], request_body()["destination"])
         fixture["routes"][0]["properties"]["totalTime"] = 61
         fixture["routes"][0]["steps"][0]["path"] = {"points": [[127.1, 37.1], [999, 37], [None, 2]]}
         route = app.normalize_routes(fixture, app.parse_departure("2026-09-12T22:00"))[0]
@@ -194,9 +196,9 @@ class HTTPTests(unittest.TestCase):
 
     def test_post_end_to_end(self):
         request = urllib.request.Request(self.url + "/api/routes", data=json.dumps(request_body()).encode(), headers={"Content-Type": "application/json"})
-        with urllib.request.urlopen(request) as response:
-            data = json.load(response)
-        self.assertEqual(data["routes"][0]["durationMinutes"], 49)
+        with self.assertRaises(urllib.error.HTTPError) as caught:
+            urllib.request.urlopen(request)
+        self.assertEqual(caught.exception.code, 422)
 
     def test_private_files_not_served(self):
         for path in ("/.env", "/backend/app.py", "/.git/config", "/../README.md", "/%2e%2e/.env"):

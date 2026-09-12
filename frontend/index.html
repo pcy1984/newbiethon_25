@@ -36,9 +36,8 @@
         <p id="form-error" class="form-error" role="alert" hidden></p>
         <button id="submit-button" class="submit-button" type="submit" disabled><span>경로 찾기</span><span aria-hidden="true">↗</span></button>
       </form>
-      <details class="examples" id="examples"><summary>예제 경로</summary><div id="example-buttons"></div></details>
       <p id="coverage-note" class="coverage-note"><strong>현재 서울권만 안내해요</strong>서울권 안에서도 일부 노선·막차 시각은 확인되지 않을 수 있어요.</p>
-      <p id="config-notice" class="config-notice" hidden>가상 예제 모드입니다. 실제 운행·막차 정보가 아닙니다.</p>
+      <p id="config-notice" class="config-notice" hidden>API 설정 후 경로를 검색할 수 있습니다. 가상 경로는 표시하지 않습니다.</p>
     </aside>
     <section id="results-region" class="results" aria-labelledby="result-heading" aria-busy="false">
       <div class="result-topline"><div class="panel-heading"><span class="section-index">02</span><h2 id="result-heading">나의 귀가 플랜</h2></div><span id="result-status">출발지와 목적지를 선택하세요</span></div>
@@ -70,8 +69,8 @@
               <div id="traveler-marker" class="traveler-marker" hidden><span class="traveler-avatar" aria-hidden="true"><img src="/companion.svg" alt="" width="60" height="66"></span><span id="traveler-label">출발지</span></div>
               <div id="route-line" class="route-line" role="group" aria-label="직선 이동 경로"></div>
             </div></div>
-            <p class="route-caption">지점을 누르면 상세 정보를 볼 수 있어요. 캐릭터는 예상 위치입니다.</p>
-            <details class="route-details"><summary>승차·하차 순서</summary><div id="route-guide" class="route-guide"></div></details>
+            <div class="route-footnote"><span class="route-caption">이동 순서 · 지점을 눌러 상세 보기</span><span id="estimate-note" class="estimate-note" hidden></span></div>
+            <details class="route-details" open><summary>전체 이동 순서 · 거리와 시간</summary><div id="route-guide" class="route-guide"></div></details>
             <details id="node-details" class="route-details"><summary>지점 상세 · 도보·택시</summary>
               <section id="node-info" class="node-info" aria-labelledby="node-heading" aria-live="polite"></section>
               <details id="walking-panel" class="walking-panel" aria-labelledby="walking-heading" hidden><summary id="walking-heading">이 지점에서 목적지까지 걷기</summary>
@@ -105,7 +104,6 @@
           </div>
         </details>
         <p id="provider-warning" class="inline-warning" hidden></p>
-        <p id="demo-banner" class="inline-warning" hidden>가상 예제 결과입니다. 실제 운행 정보가 아닙니다.</p>
       </div>
     </section>
   </div>

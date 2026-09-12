@@ -69,7 +69,7 @@ test('동일 좌표와 미선택', () => {
 });
 test('거리 단위 표시', () => {
   assert.equal(distanceLabel(900), '900m');
-  assert.equal(distanceLabel(1750), '1.8km');
+  assert.equal(distanceLabel(1750), '1,750m');
 });
 test('분 올림한 소요시간과 도착 시각이 일치하고 자정도 처리', () => {
   assert.equal(timeInKorea(roundUpToMinute('2026-09-12T22:01:01+09:00')), '22:02');

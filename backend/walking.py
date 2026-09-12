@@ -5,6 +5,31 @@ from urllib.parse import quote
 from seoul_transit import SeoulError, numeric
 
 
+def estimate(origin, destination, departure):
+    """Explicit distance/time model only. Never invent turn-by-turn directions."""
+    try:
+        coords = [float(p[k]) for p in (origin, destination) for k in ('x', 'y')]
+        if not all(math.isfinite(v) for v in coords):
+            raise ValueError()
+        if not all(124 < p['x'] < 132 and 33 < p['y'] < 40 for p in (origin, destination)):
+            raise ValueError()
+        lat1, lat2 = math.radians(origin['y']), math.radians(destination['y'])
+        dlat, dlon = lat2 - lat1, math.radians(destination['x'] - origin['x'])
+        h = math.sin(dlat / 2) ** 2 + math.cos(lat1) * math.cos(lat2) * math.sin(dlon / 2) ** 2
+        direct = 6371000 * 2 * math.atan2(math.sqrt(h), math.sqrt(max(0, 1 - h)))
+        distance = math.ceil(direct * 1.3)
+        seconds = math.ceil(distance / (4000 / 3600))
+        def location(p):
+            return quote(p['name'], safe='') + ',' + str(p['y']) + ',' + str(p['x'])
+        return {'source': 'estimated-walk', 'estimated': True, 'origin': origin, 'destination': destination,
+                'distanceMeters': distance, 'straightDistanceMeters': round(direct), 'durationSeconds': seconds,
+                'departure': departure.isoformat(), 'arrival': (departure + timedelta(seconds=seconds)).isoformat(),
+                'directions': [], 'url': 'https://map.kakao.com/link/by/walk/' + location(origin) + '/' + location(destination),
+                'notice': 'API 도보 경로를 확인하지 못해 추정한 값입니다. 양끝 좌표의 직선거리×1.3, 보행속도 4km/h를 가정합니다. 실제 도로·횡단보도·하천·출입구·통제를 반영하지 않으며 길안내나 통행 가능 여부가 아닙니다.'}
+    except (KeyError, TypeError, ValueError):
+        raise SeoulError('양끝 좌표가 없어 도보 거리·시간을 추정할 수 없습니다.', 422) from None
+
+
 def normalize(payload, origin, destination, departure):
     if payload.get('status') != 'OK':
         raise SeoulError('해당 지점의 도보 경로를 찾지 못했습니다. 직선거리로 대체하지 않았습니다.', 422)

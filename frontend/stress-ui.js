@@ -119,9 +119,10 @@ export function createStressUI({post, chooseRoute, highlight}) {
   $('recovery-button').addEventListener('click',recovery);
   function selectPoint(value, updateStress=true) {
     if(!context)return;
+    if (value.kind === 'destination') { point = null; walkRequest?.abort(); $('walking-panel').hidden = true; $('taxi-panel').hidden = true; return; }
     point=value; walkRequest?.abort(); $('walk-result').replaceChildren(); $('walk-button').disabled=false;
     $('walking-panel').hidden=false; $('walk-origin').textContent=value.name;
-    $('walk-help').textContent=context.config.walkingConfigured ? '선택한 지점에서 목적지까지 실제 도보 경로를 조회해요. 걷기 시작할 시각은 직접 바꿀 수 있어요.' : '카카오 REST 키를 넣고 서버를 다시 실행하면 도보 경로를 확인할 수 있어요.';
+    $('walk-help').textContent='API 도보 경로를 먼저 확인하고, 응답이 없으면 직선거리×1.3·시속 4km로 추정해요. 예상값에는 별도 표시가 붙습니다.';
     const checkpoint=current?.checkpoints?.find(p=>p.rideIndex===value.rideIndex);
     const when=value.kind==='origin' ? context.body.departure : value.kind==='alighting' ? value.step?.arrival : checkpoint?.readyAt;
     $('walk-departure').value=when?.length===16 ? when : when ? localKoreaInput(new Date(when)) : context.body.departure;
@@ -143,12 +144,12 @@ export function createStressUI({post, chooseRoute, highlight}) {
       const data=await post('/api/walk',body({pointKind:selected.kind,rideIndex:selected.rideIndex,walkDeparture:departure}),walkRequest.signal);
       if(version!==generation || selected!==point || departure!==input.value)return;
       const result=$('walk-result'); result.replaceChildren();
-      result.append(element('strong',distanceLabel(data.distanceMeters)+' · '+formatDuration(data.durationSeconds)),
+      result.append(element('strong',(data.estimated ? '추정 · 약 ' : 'API · ') + distanceLabel(data.distanceMeters)+' · '+formatDuration(data.durationSeconds)),
         element('p',arrivalDayLabel(data.departure,data.arrival)+' '+time(data.arrival)+' 도착 예상'),element('p',data.notice));
       const link=element('a','카카오맵에서 도보 경로 보기 ↗','secondary-button'); link.href=data.url; link.target='_blank'; link.rel='noreferrer'; result.append(link);
       const details=element('details'),list=element('ol'); details.append(element('summary','도보 구간 안내'));
-      for(const direction of data.directions) list.append(element('li',direction.text+' · '+distanceLabel(direction.distanceMeters)));
-      details.append(list); result.append(details);
+      for(const direction of data.directions || []) list.append(element('li',direction.text+' · '+distanceLabel(direction.distanceMeters)+' · '+formatDuration(direction.durationSeconds)));
+      if (data.directions?.length) { details.append(list); result.append(details); }
     } catch(error) { if(version===generation && selected===point && error.name!=='AbortError') $('walk-result').replaceChildren(element('p',error.message)); }
     finally { if(version===generation && selected===point) $('walk-button').disabled=false; }
   }

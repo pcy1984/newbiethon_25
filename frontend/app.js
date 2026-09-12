@@ -1,4 +1,4 @@
-import { formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, samePlace, roundUpToMinute, buildJourneyGraph } from './utils.js';
+import { formatDuration, timeInKorea, localKoreaInput, arrivalDayLabel, samePlace, roundUpToMinute, buildJourneyGraph, buildRouteView, segmentMetrics } from './utils.js';
 import {createStressUI, scenarioLabel} from './stress-ui.js';
 import {createJourneyTracker} from './journey-progress.js';
 
@@ -36,7 +36,7 @@ async function request(url, options = {}) {
 }
 function errorMessage(text = '') { $('form-error').textContent = text; $('form-error').hidden = !text; }
 function busy(yes) {
-  $('submit-button').disabled = yes || !state.config;
+  $('submit-button').disabled = yes || !state.config || state.config.mode === 'demo';
   $('submit-button').firstElementChild.textContent = yes ? '경로 검색 중…' : '경로 찾기';
   $('results-region').setAttribute('aria-busy', String(yes));
   $('loading-state').hidden = !yes;
@@ -87,7 +87,7 @@ async function searchPlaces(field) {
   try {
     const data = await request('/api/places?q=' + encodeURIComponent(query) + '&kind=keyword', {signal: search.controller.signal});
     if (generation !== search.generation) return;
-    suggestions(field, data.places, data.places.length ? '' : state.config.mode === 'demo' ? '예제 버튼을 선택해 주세요.' : '검색 결과가 없어요. 역·정류장 이름으로 다시 검색해 주세요.');
+    suggestions(field, data.places, data.places.length ? '' : '검색 결과가 없어요. 역·정류장 이름으로 다시 검색해 주세요.');
   } catch (error) {
     if (generation === search.generation && error.name !== 'AbortError') suggestions(field, [], error.message);
   }
@@ -155,7 +155,8 @@ $('route-form').addEventListener('submit', async event => {
     const data = await request('/api/routes', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(body), signal: state.request.signal, timeout: 60000});
     if (revision !== state.revision) return;
     state.response = data; state.routeIndex = 0; state.reports.clear(); busy(false);
-    $('result-content').hidden = false; $('demo-banner').hidden = data.source !== 'demo';
+    if (data.source === 'demo') throw new Error('가상 경로는 표시하지 않습니다. 교통 API 설정을 확인해 주세요.');
+    $('result-content').hidden = false;
     $('provider-warning').hidden = !data.providerWarnings?.length;
     $('provider-warning').textContent = data.providerWarnings?.length ? '일부 경로 제공처 응답을 확인하지 못했어요. 확인된 경로만 표시합니다.' : '';
     const counts = routeCounts(data.routes);
@@ -186,12 +187,13 @@ function renderOptions() {
     heading.append(headingCopy, node('span', entries.length + '개', 'route-count')); section.append(heading);
     const list = node('div', '', 'route-group-list');
     for (const {item, index} of entries) {
+      const preview = buildRouteView(item, state.response.origin, state.response.destination);
       const button = node('button', '', 'route-option ' + type.toLowerCase()); button.type = 'button'; button.dataset.index = index;
       button.setAttribute('aria-pressed', 'false');
       const top = node('div', '', 'option-top');
       top.append(node('span', '경로 ' + String(index + 1).padStart(2, '0'), 'option-label'), node('span', transportLabel(item), 'transport-badge'));
       const rides = item.steps.filter(step => ['SUBWAY', 'BUS'].includes(step.type));
-      button.append(top, node('strong', formatDuration(item.durationSeconds)),
+      button.append(top, node('strong', (preview.timeEstimated ? '약 ' : '') + formatDuration(preview.totalSeconds)),
         node('div', item.label || rides.map(step => step.vehicles[0] || step.title).join(' → '), 'option-lines'),
         node('small', '환승 ' + (item.transfers ?? '미확인') + '회 · ' + rides.length + '개 승차 구간', 'option-stats'),
         node('small', '출발 마감은 선택 후 확인', 'option-deadline'));
@@ -219,15 +221,19 @@ function chooseRoute(index) {
   state.deadlineRequest?.abort(); state.selection++; state.routeIndex = index; state.nodeIndex = 0;
   for (const el of routeButtons()) el.setAttribute('aria-pressed', String(Number(el.dataset.index) === index));
   const item = route();
+  state.view = buildRouteView(item, state.response.origin, state.response.destination);
   $('journey-title').textContent = state.response.origin.name + ' → ' + state.response.destination.name;
   $('route-tag').textContent = transportLabel(item) + ' · 경로 ' + String(index + 1).padStart(2, '0');
-  $('duration').textContent = formatDuration(item.durationSeconds);
-  $('arrival-time').textContent = clock(roundUpToMinute(item.arrival));
-  $('arrival-day').textContent = arrivalDayLabel(item.departure, roundUpToMinute(item.arrival));
+  const displayedArrival = new Date(new Date(item.departure).getTime() + state.view.totalSeconds * 1000).toISOString();
+  $('duration').textContent = (state.view.timeEstimated ? '약 ' : '') + formatDuration(state.view.totalSeconds);
+  $('arrival-time').textContent = clock(roundUpToMinute(displayedArrival));
+  $('arrival-day').textContent = arrivalDayLabel(item.departure, roundUpToMinute(displayedArrival));
   $('transfer-count').textContent = (item.transfers ?? '미확인') + '회';
   $('time-note').textContent = (item.warnings || []).join(' ') || state.response.notice;
+  $('estimate-note').textContent = state.view.estimated ? '약: 거리·시간 추정값' : '';
+  $('estimate-note').hidden = !state.view.estimated;
   renderLine(); renderGuide(); renderDeadline(); loadDeadline();
-  tracker.setRoute(item);
+  tracker.setRoute({...item, presentation: state.view});
   $('node-details').open = false;
   stressUI.setRoute({response: state.response, route: item, body: state.body, config: state.config});
 }
@@ -242,7 +248,7 @@ function lineColor(step) {
   return '#92b8e6';
 }
 function renderLine() {
-  state.graph = buildJourneyGraph(route(), state.response.origin.name);
+  state.graph = buildJourneyGraph(route(), state.response.origin.name, state.view);
   state.nodes = state.graph.filter(part => part.type === 'node');
   const line = $('route-line'); line.replaceChildren(); let nodeIndex = 0;
   for (const part of state.graph) {
@@ -272,23 +278,21 @@ function renderLine() {
 }
 function renderGuide() {
   const guide = $('route-guide'); guide.replaceChildren();
-  const rides = route().steps.filter(step => ['SUBWAY', 'BUS'].includes(step.type));
-  const checkpoints = report()?.checkpoints || [];
-  rides.forEach((step, rideIndex) => {
-    const point = checkpoints[rideIndex] || {};
-    const row = node('button', '', 'guide-step ' + step.type.toLowerCase()); row.type = 'button';
-    const number = node('span', String(rideIndex + 1).padStart(2, '0'), 'guide-number');
+  state.view.segments.filter(s => s.durationSeconds > 0 || s.kind === 'ride').forEach((step, index) => {
+    const ride = step.kind === 'ride';
+    const row = node(ride ? 'button' : 'div', '', 'guide-step ' + step.type.toLowerCase()); if (ride) row.type = 'button';
+    row.title = step.basis || '';
+    const number = node('span', String(index + 1).padStart(2, '0'), 'guide-number');
     const copy = node('span', '', 'guide-copy');
-    copy.append(node('span', (step.vehicles || [step.title])[0], 'guide-line'),
-      node('strong', step.stops[0] + ' → ' + step.stops[step.stops.length - 1]),
-      node('small', step.type === 'BUS' ? '버스 승차·하차 정류장' : '지하철 승차·하차역'));
-    const seconds = step.durationSeconds ?? point.durationSeconds;
+    copy.append(node('span', step.kind === 'waiting' ? '대기' : ride ? step.vehicles?.[0] || step.title : '도보', 'guide-line'),
+      node('strong', ride ? step.stops[0] + ' → ' + step.stops.at(-1) : step.title));
+    if (ride && step.stops.length > 2) copy.append(node('small', '중간 ' + (step.stops.length - 2) + (step.type === 'BUS' ? '개 정류장' : '개 역')));
     const meta = node('span', '', 'guide-meta');
-    meta.append(node('span', seconds == null ? '전체 시간에 포함' : formatDuration(seconds)),
-      node('span', point.lastBusAt ? '막차 예정 ' + pointClock(point.lastBusAt) : step.departure ? '승차 ' + pointClock(step.departure) : '승차 시각 미제공'));
+    meta.append(node('span', segmentMetrics(step)));
+    if (step.departure && step.arrival) meta.append(node('span', pointClock(step.departure) + ' → ' + pointClock(step.arrival)));
     row.append(number, copy, meta);
-    const nodeIndex = state.nodes.findIndex(part => part.kind === 'boarding' && part.rideIndex === rideIndex);
-    row.addEventListener('click', () => { if (nodeIndex >= 0) selectNode(nodeIndex); });
+    const nodeIndex = state.nodes.findIndex(part => part.kind === 'boarding' && part.rideIndex === step.rideIndex);
+    if (ride) row.addEventListener('click', () => { if (nodeIndex >= 0) selectNode(nodeIndex); });
     guide.append(row);
   });
 }
@@ -314,7 +318,11 @@ function renderNode() {
   heading.append(title, node('span', part.label, 'detail-kind')); info.append(heading);
   const grid = node('dl', '', 'info-grid');
   const add = (label, value) => { const box = node('div'); box.append(node('dt', label), node('dd', value)); grid.append(box); };
-  if (part.kind === 'origin') {
+  if (part.kind === 'destination') {
+    add('도착 지점', state.response.destination.name);
+    add('마지막 도보', state.view.segments.filter(s => s.kind === 'tail').map(segmentMetrics).join(' / ') || '별도 이동 없음');
+    info.append(grid, node('p', '도보 추정은 실제 골목·횡단보도 길안내가 아닙니다.'));
+  } else if (part.kind === 'origin') {
     add('늦어도 출발할 시각 · 예상', report()?.originLatestDeparture ? clock(report().originLatestDeparture) : report() ? '확인 필요' : '조회 중');
     add('첫 승차 지점까지 · 직접 입력', formatDuration((route().accessMinutes ?? state.body.accessMinutes) * 60));
     info.append(grid, node('p', '첫 승차 지점: ' + (route().boardingStation || state.nodes[1]?.name || '미확인') + '. 입력한 이동시간이 충분한지 확인하세요.'));
@@ -331,13 +339,14 @@ function renderNode() {
     add('구간 소요시간', formatDuration(part.step.durationSeconds));
     add('다음 단계', part.final ? '목적지까지 별도 이동 확인' : '다음 승차 지점으로 환승');
     info.append(grid, node('p', part.final ? '최종 하차 지점입니다. 아래 도보 조회를 펼치면 목적지까지 남은 이동을 확인할 수 있습니다.' : '다음 지점까지 실제 이동시간을 확인하세요. 설정한 여유만으로 환승 성공이 보장되지는 않습니다.'));
+    if (part.step.stops.length > 2) info.append(node('p', 'API 경유 순서: ' + part.step.stops.join(' → '), 'station-sequence'));
   }
 }
 async function loadDeadline(force = false) {
   if (!route()) return;
   if (report() && !force) return;
   if (state.response.source !== 'seoul') {
-    state.reports.set(route().id, {status: 'unknown', notice: '예제 데이터로 실제 막차 시각을 만들지 않습니다.'}); renderDeadline(); renderNode(); return;
+    state.reports.set(route().id, {status: 'unknown', notice: '시간표 제공처가 연결되지 않아 막차 시각은 추정하지 않았습니다.'}); renderDeadline(); renderNode(); return;
   }
   const revision = state.revision, selection = state.selection, id = route().id;
   state.deadlineRequest?.abort(); state.deadlineRequest = new AbortController();
@@ -391,13 +400,8 @@ async function initialize() {
   setNow(); updateClock();
   try {
     state.config = await request('/api/config');
-    $('mode-badge').textContent = state.config.mode === 'demo' ? '가상 예제' : '교통 정보 연결';
+    $('mode-badge').textContent = state.config.mode === 'demo' ? 'API 설정 필요' : '서울권 교통 연동';
     $('config-notice').hidden = state.config.mode !== 'demo';
-    for (const sample of state.config.examples || []) {
-      const button = node('button', sample.origin.name + ' → ' + sample.destination.name, 'example-button'); button.type = 'button';
-      button.addEventListener('click', () => { selectPlace('origin', sample.origin); selectPlace('destination', sample.destination); $('submit-button').focus(); });
-      $('example-buttons').append(button);
-    }
     busy(false);
   } catch (error) { $('mode-badge').textContent = '연결 확인 필요'; errorMessage(error.message); }
 }

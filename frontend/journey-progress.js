@@ -4,6 +4,21 @@ const seconds = value => Number.isFinite(value) && value >= 0 ? value : null;
 
 // Progress is a clock-based illustration of the queried plan, never GPS.
 export function buildProgressPlan(route) {
+  if (route.presentation?.segments?.length) {
+    const view = route.presentation, phases = [];
+    let cursor = 0;
+    for (const segment of view.segments) {
+      const duration = seconds(segment.durationSeconds);
+      if (duration == null) return null;
+      if (duration > 0) phases.push({start: cursor, end: cursor + duration, fromNode: segment.fromNode, toNode: segment.toNode,
+        kind: segment.kind === 'waiting' ? 'waiting' : segment.kind, label: segment.title + (segment.timeSource === 'estimated' ? ' · 시간 추정' : ''),
+        nextName: segment.kind === 'ride' ? segment.stops.at(-1) : segment.title});
+      cursor += duration;
+    }
+    if (!phases.length) return null;
+    return {phases, totalSeconds: cursor, finalNode: view.finalNode, finalName: view.finalName, approximate: view.timeEstimated, includesFinalWalk: view.hasTail,
+      explanation: '전체 이동 순서의 도보·대기·승차 시간을 그대로 재생합니다. API 미제공 시간은 표시된 가정으로 추정하며 GPS·실제 탑승 여부가 아닙니다.'};
+  }
   const rides = route.steps.filter(step => ['SUBWAY', 'BUS'].includes(step.type));
   if (!rides.length) return null;
   const phases = [];
@@ -84,16 +99,16 @@ export function createJourneyTracker() {
     const elapsed = Math.max(0, (Date.now() - startedAt) / 1000);
     const current = progressAt(plan, elapsed);
     $('trip-elapsed').textContent = '출발 후 ' + Math.floor(elapsed / 60) + '분 ' + String(Math.floor(elapsed % 60)).padStart(2, '0') + '초';
-    $('trip-remaining').textContent = current.complete ? '최종 하차 지점 도착 예상' : '약 ' + formatDuration(current.remaining) + ' 남음';
+    $('trip-remaining').textContent = current.complete ? (plan.includesFinalWalk ? '목적지 도착 예상' : '최종 하차 지점 도착 예상') : '약 ' + formatDuration(current.remaining) + ' 남음';
     $('trip-progress').value = current.ratio * 100;
     $('trip-progress').setAttribute('aria-valuetext', Math.floor(current.ratio * 100) + '% 진행 · 예상');
     const eta = startedAt + plan.totalSeconds * 1000;
     const day = arrivalDayLabel(startedAt, eta);
-    $('trip-eta').textContent = '하차 예상 ' + (day === '당일' ? '' : day + ' ') + timeInKorea(eta);
+    $('trip-eta').textContent = (plan.includesFinalWalk ? '목적지 도착 예상 ' : '하차 예상 ') + (day === '당일' ? '' : day + ' ') + timeInKorea(eta);
     if (activePhase !== current.phase || current.complete) {
       activePhase = current.phase;
       $('trip-status').textContent = current.complete ? plan.finalName + ' 도착 예상' : current.phase.label;
-      $('trip-next').textContent = current.complete ? '목적지까지 남은 도보는 별도로 확인하세요.' : '다음 지점 · ' + current.phase.nextName;
+      $('trip-next').textContent = current.complete ? (plan.includesFinalWalk ? '계산상 도착한 시점입니다. 실제 위치는 직접 확인하세요.' : '목적지까지 남은 도보는 별도로 확인하세요.') : '다음 지점 · ' + current.phase.nextName;
     }
     $('traveler-label').textContent = current.complete ? '하차 예상' : '내 예상 위치';
     $('traveler-marker').setAttribute('data-state', current.complete ? 'complete' : current.phase.kind === 'waiting' ? 'waiting' : 'moving');

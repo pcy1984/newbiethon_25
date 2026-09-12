@@ -163,3 +163,17 @@ footer { border-color: #cdd5c4; color: #70806a; margin-top: 36px; padding-top: 2
 }
 
 @media (max-width: 390px) { .scene-destination { bottom: 34px; right: 0; } }
+/* Compact movement sequence and a single estimate legend. */
+.route-footnote {display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 16px;margin:8px 0 12px;}
+.route-footnote .route-caption {margin:0;}
+.estimate-note {font-size:11px;line-height:1.8;color:#9eafb7;}
+.guide-step.walking,.guide-step.waiting {background:transparent;border-left:2px dashed #667b7b;}
+.guide-step {min-width:0;gap:10px;}
+.guide-copy,.guide-meta {min-width:0;overflow-wrap:anywhere;}
+.guide-copy small {line-height:1.6;}
+.guide-meta {font-size:11px;max-width:180px;}
+.route-edge {flex:0 0 130px;width:130px;min-width:130px;max-width:210px;}
+.route-edge>strong {width:100%;max-width:none;margin-inline:auto;text-align:center;}
+.route-edge small {white-space:normal;line-height:1.6;word-break:keep-all;overflow-wrap:normal;}
+.station-sequence {line-height:1.8;overflow-wrap:anywhere;}
+@media(max-width:600px) {.guide-step {grid-template-columns:24px minmax(0,1fr);}.guide-meta{grid-column:2;max-width:none;align-items:flex-start;}}

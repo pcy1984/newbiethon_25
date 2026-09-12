@@ -54,7 +54,8 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
   const calls=[];
   globalThis.fetch=async(url,options={})=>{
     const body=options.body?JSON.parse(options.body):null;calls.push({url,body});
-    const data=url==='/api/config'?{mode:'seoul',walkingConfigured:true,examples:[{origin,destination}]}:
+    const data=url==='/api/config'?{mode:'seoul',walkingConfigured:true,examples:[]}:
+      url.startsWith('/api/places')?{places:[url.includes(encodeURIComponent(origin.name)) ? origin : destination]}:
       url==='/api/routes'?{source:'seoul',origin,destination,routeToken:'token',routes:[route,busRoute],stress:{routes:[stress],recommendedRouteId:'r1',evaluatedCount:1}}:
       url==='/api/deadline'?{status:'unknown',notice:'시간표 미확인'}:
       url==='/api/stress'?stress:
@@ -65,7 +66,12 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
   try {
     await import('../frontend/app.js');await flush();
     assert.equal(get('submit-button').disabled,false);
-    await get('example-buttons').children[0].emit('click');
+    for (const [field, place] of [['origin', origin], ['destination', destination]]) {
+      get(field+'-input').value = place.name;
+      await get(field+'-input').emit('input');
+      await new Promise(resolve => setTimeout(resolve, 600));
+      await get(field+'-results').children[0].emit('click');
+    }
     get('departure-date').value='2026-09-12';get('departure-time').value='22:40';
     await get('route-form').emit('submit');await flush();
     assert.equal(get('result-content').hidden,false);
@@ -87,7 +93,7 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
     assert.match(get('recovery-result').textContent,/대안 미확인/);
     get('walk-departure').value='2026-09-12T23:50';
     await get('walk-button').emit('click');await flush();
-    assert.match(get('walk-result').textContent,/1.5km/);
+    assert.match(get('walk-result').textContent,/1,500m/);
     assert.match(get('walk-result').textContent,/다음 날 00:20/);
     assert.equal(calls.findLast(c=>c.url==='/api/walk').body.pointKind,'boarding');
     const options=get('route-options').querySelectorAll('.route-option');
@@ -98,7 +104,8 @@ test('앱 초기화 → 경로 → 시나리오 → 환승 지점 → 도보 →
     assert.equal(get('stress-lab').hidden,true);
     assert.equal(get('trip-start').disabled,false);
     assert.match(get('route-guide').textContent,/201/);
-    assert.match(get('route-guide').textContent,/버스 승차·하차 정류장/);
+    assert.match(get('route-guide').textContent,/→/);
+    assert.doesNotMatch(get('route-guide').textContent,/예상값 포함|API 제공|가정속도|버스 승차·하차 정류장/);
     await get('access-minutes').emit('input');
     assert.equal(get('result-content').hidden,true);
     assert.equal(get('stress-lab').hidden,true);
